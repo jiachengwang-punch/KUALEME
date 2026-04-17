@@ -18,6 +18,9 @@ export default function PlazaScreen() {
   const [activePost, setActivePost] = useState<Post | null>(null);
   const [showPublish, setShowPublish] = useState(false);
   const [newContent, setNewContent] = useState('');
+  const [closeFriendIds, setCloseFriendIds] = useState<Set<string>>(new Set());
+  const [interactions, setInteractions] = useState<Map<string, { liked: boolean; commented: boolean }>>(new Map());
+  const [blockedPostId, setBlockedPostId] = useState<string | null>(null);
   const [newTier, setNewTier] = useState<'starlight' | 'glimmer'>('glimmer');
   const [publishing, setPublishing] = useState(false);
 
@@ -32,7 +35,31 @@ export default function PlazaScreen() {
 
   useEffect(() => {
     fetchPosts().finally(() => setLoading(false));
+    loadCloseFriends();
   }, []);
+
+  const loadCloseFriends = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from('close_friends').select('friend_id').eq('user_id', user.id);
+    if (data) setCloseFriendIds(new Set(data.map((cf: any) => cf.friend_id)));
+    const { data: ints } = await supabase.from('interactions').select('post_id, has_liked, has_commented').eq('user_id', user.id);
+    if (ints) {
+      const map = new Map<string, { liked: boolean; commented: boolean }>();
+      ints.forEach((i: any) => map.set(i.post_id, { liked: i.has_liked, commented: i.has_commented }));
+      setInteractions(map);
+    }
+  };
+
+  const isBlocked = (post: Post, index: number): boolean => {
+    if (!closeFriendIds.has(post.user_id)) return false;
+    const prevPosts = posts.slice(0, index).filter(p => p.user_id === post.user_id);
+    if (prevPosts.length === 0) return false;
+    return prevPosts.some(p => {
+      const int = interactions.get(p.id);
+      return !int?.liked || !int?.commented;
+    });
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -47,9 +74,17 @@ export default function PlazaScreen() {
     await supabase.from('likes').insert({ post_id: postId, user_id: user.id });
     await supabase.rpc('increment_likes', { post_id: postId });
 
-    setPosts((prev) =>
-      prev.map((p) => p.id === postId ? { ...p, likes_count: p.likes_count + 1 } : p)
+    await supabase.from('interactions').upsert(
+      { user_id: user.id, post_id: postId, has_liked: true },
+      { onConflict: 'user_id,post_id' }
     );
+
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, likes_count: p.likes_count + 1 } : p));
+    setInteractions((prev) => {
+      const next = new Map(prev);
+      next.set(postId, { liked: true, commented: prev.get(postId)?.commented ?? false });
+      return next;
+    });
   };
 
   const handleComment = async (text: string, score: number) => {
@@ -58,10 +93,18 @@ export default function PlazaScreen() {
     if (!user) return;
 
     await supabase.from('comments').insert({
-      post_id: activePost.id,
-      user_id: user.id,
-      content: text,
-      sincerity_score: score,
+      post_id: activePost.id, user_id: user.id, content: text, sincerity_score: score,
+    });
+
+    await supabase.from('interactions').upsert(
+      { user_id: user.id, post_id: activePost.id, has_commented: true },
+      { onConflict: 'user_id,post_id' }
+    );
+
+    setInteractions((prev) => {
+      const next = new Map(prev);
+      next.set(activePost.id, { liked: prev.get(activePost.id)?.liked ?? false, commented: true });
+      return next;
     });
   };
 
@@ -110,7 +153,13 @@ export default function PlazaScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => (
           <Animated.View entering={FadeInDown.delay(index * 60).duration(400)}>
-            <PostCard post={item} onLit={handleLit} onComment={(p) => setActivePost(p)} />
+            {isBlocked(item, index) ? (
+              <View style={blockedCardStyle}>
+                <Text style={blockedTextStyle}>请先为前一条动态点亮并留言，才能继续浏览 TA 的内容 ✦</Text>
+              </View>
+            ) : (
+              <PostCard post={item} onLit={handleLit} onComment={(p) => setActivePost(p)} />
+            )}
           </Animated.View>
         )}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
@@ -166,6 +215,15 @@ export default function PlazaScreen() {
     </View>
   );
 }
+
+const blockedCardStyle: any = {
+  marginHorizontal: 16, marginVertical: 8, backgroundColor: 'rgba(192,132,252,0.07)',
+  borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(192,132,252,0.2)',
+  alignItems: 'center',
+};
+const blockedTextStyle: any = {
+  color: Colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20,
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
