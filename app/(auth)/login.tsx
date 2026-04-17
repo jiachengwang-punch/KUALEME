@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
@@ -7,16 +7,29 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { Colors, Gradients } from '../../constants/theme';
 
+const ERROR_MAP: Record<string, string> = {
+  'auth/email-already-in-use': '该邮箱已被注册',
+  'auth/invalid-email': '邮箱格式不正确',
+  'auth/weak-password': '密码至少需要6位',
+  'auth/user-not-found': '账号不存在',
+  'auth/wrong-password': '密码错误',
+  'auth/invalid-credential': '邮箱或密码错误',
+  'auth/too-many-requests': '尝试次数过多，请稍后再试',
+  'auth/network-request-failed': '网络连接失败，请检查网络',
+};
+
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleAuth = async () => {
-    if (!email || !password) return;
+    if (!email || !password) { setError('请填写邮箱和密码'); return; }
     setLoading(true);
+    setError('');
     try {
       if (isSignUp) {
         const { user } = await createUserWithEmailAndPassword(auth, email, password);
@@ -30,7 +43,7 @@ export default function LoginScreen() {
         await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (e: any) {
-      Alert.alert(isSignUp ? '注册失败' : '登录失败', e.message);
+      setError(ERROR_MAP[e.code] ?? e.message ?? '操作失败，请重试');
     }
     setLoading(false);
   };
@@ -50,8 +63,14 @@ export default function LoginScreen() {
           )}
           <TextInput style={styles.input} placeholder="邮箱" placeholderTextColor={Colors.textMuted}
             value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-          <TextInput style={styles.input} placeholder="密码" placeholderTextColor={Colors.textMuted}
+          <TextInput style={styles.input} placeholder="密码（至少6位）" placeholderTextColor={Colors.textMuted}
             value={password} onChangeText={setPassword} secureTextEntry />
+
+          {error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
 
           <TouchableOpacity style={[styles.btn, loading && styles.btnDisabled]} onPress={handleAuth} disabled={loading}>
             <LinearGradient colors={['#7C3AED', '#EC4899']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btnGradient}>
@@ -59,7 +78,7 @@ export default function LoginScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => setIsSignUp(!isSignUp)} style={styles.toggle}>
+          <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setError(''); }} style={styles.toggle}>
             <Text style={styles.toggleText}>{isSignUp ? '已有账号？去登录' : '还没账号？去注册'}</Text>
           </TouchableOpacity>
         </Animated.View>
@@ -75,6 +94,8 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: Colors.textMuted, textAlign: 'center', marginTop: 8, letterSpacing: 2 },
   form: { marginTop: 48, gap: 14 },
   input: { backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16, color: Colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: Colors.border },
+  errorBox: { backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' },
+  errorText: { color: '#F87171', fontSize: 14, textAlign: 'center' },
   btn: { borderRadius: 16, overflow: 'hidden', marginTop: 8 },
   btnDisabled: { opacity: 0.5 },
   btnGradient: { paddingVertical: 18, alignItems: 'center' },
