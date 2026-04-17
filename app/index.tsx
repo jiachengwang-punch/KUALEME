@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, Easing } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
-import { supabase } from '../lib/supabase';
+import { auth } from '../lib/firebase';
 import { Colors, Gradients } from '../constants/theme';
 
 const { width, height } = Dimensions.get('window');
@@ -22,13 +22,9 @@ export default function SplashScreen() {
     opacity.value = withDelay(300, withTiming(1, { duration: 1200, easing: Easing.out(Easing.ease) }));
     scale.value = withDelay(300, withTiming(1, { duration: 1200, easing: Easing.out(Easing.ease) }));
 
-    const timer = setTimeout(async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.replace('/(tabs)/plaza');
-      } else {
-        router.replace('/(auth)/login');
-      }
+    const timer = setTimeout(() => {
+      const user = auth.currentUser;
+      router.replace(user ? '/(tabs)/plaza' : '/(auth)/login');
     }, 3500);
 
     return () => clearTimeout(timer);
