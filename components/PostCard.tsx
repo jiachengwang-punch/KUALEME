@@ -7,7 +7,7 @@ import Animated, {
   withSequence, runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Post } from '../lib/supabase';
+import { Post } from '../lib/firebase';
 import { Colors, Gradients } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -61,12 +61,12 @@ export default function PostCard({ post, onLit, onComment }: Props) {
           <View style={styles.header}>
             <View style={[styles.avatarCircle]}>
               <LinearGradient
-                colors={post.profiles?.avatar_colors as [string, string, string] ?? tierColors}
+                colors={(post.profile?.avatarColors ?? tierColors) as [string, string, string]}
                 style={StyleSheet.absoluteFill}
               />
             </View>
             <View style={styles.meta}>
-              <Text style={styles.username}>{post.profiles?.username ?? '匿名'}</Text>
+              <Text style={styles.username}>{post.profile?.username ?? '匿名'}</Text>
               <Text style={styles.tier}>{tierLabel}</Text>
             </View>
           </View>

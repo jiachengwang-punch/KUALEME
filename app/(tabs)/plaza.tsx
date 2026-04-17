@@ -1,15 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, Modal, Alert, RefreshControl, SafeAreaView,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, Alert, RefreshControl, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { supabase, Post } from '../../lib/supabase';
+import { collection, query, orderBy, limit, getDocs, addDoc, doc, updateDoc, increment, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db, Post } from '../../lib/firebase';
 import { extractKeywords } from '../../lib/openai';
 import PostCard from '../../components/PostCard';
 import CommentModal from '../../components/CommentModal';
 import { Colors, Gradients } from '../../constants/theme';
+import { TextInput } from 'react-native';
 
 export default function PlazaScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -18,47 +17,41 @@ export default function PlazaScreen() {
   const [activePost, setActivePost] = useState<Post | null>(null);
   const [showPublish, setShowPublish] = useState(false);
   const [newContent, setNewContent] = useState('');
-  const [closeFriendIds, setCloseFriendIds] = useState<Set<string>>(new Set());
-  const [interactions, setInteractions] = useState<Map<string, { liked: boolean; commented: boolean }>>(new Map());
-  const [blockedPostId, setBlockedPostId] = useState<string | null>(null);
   const [newTier, setNewTier] = useState<'starlight' | 'glimmer'>('glimmer');
   const [publishing, setPublishing] = useState(false);
-
-  const fetchPosts = useCallback(async () => {
-    const { data } = await supabase
-      .from('posts')
-      .select('*, profiles(id, username, avatar_colors)')
-      .order('created_at', { ascending: false })
-      .limit(30);
-    if (data) setPosts(data as Post[]);
-  }, []);
+  const [closeFriendIds, setCloseFriendIds] = useState<Set<string>>(new Set());
+  const [interactions, setInteractions] = useState<Map<string, { liked: boolean; commented: boolean }>>(new Map());
 
   useEffect(() => {
     fetchPosts().finally(() => setLoading(false));
     loadCloseFriends();
   }, []);
 
-  const loadCloseFriends = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase.from('close_friends').select('friend_id').eq('user_id', user.id);
-    if (data) setCloseFriendIds(new Set(data.map((cf: any) => cf.friend_id)));
-    const { data: ints } = await supabase.from('interactions').select('post_id, has_liked, has_commented').eq('user_id', user.id);
-    if (ints) {
-      const map = new Map<string, { liked: boolean; commented: boolean }>();
-      ints.forEach((i: any) => map.set(i.post_id, { liked: i.has_liked, commented: i.has_commented }));
-      setInteractions(map);
+  const fetchPosts = useCallback(async () => {
+    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(30));
+    const snap = await getDocs(q);
+    const items: Post[] = [];
+    for (const d of snap.docs) {
+      const data = d.data();
+      let profile;
+      try {
+        const pSnap = await getDoc(doc(db, 'users', data.userId));
+        if (pSnap.exists()) profile = { id: pSnap.id, ...pSnap.data() } as any;
+      } catch {}
+      items.push({ id: d.id, ...data, profile } as Post);
     }
-  };
+    setPosts(items);
+  }, []);
 
-  const isBlocked = (post: Post, index: number): boolean => {
-    if (!closeFriendIds.has(post.user_id)) return false;
-    const prevPosts = posts.slice(0, index).filter(p => p.user_id === post.user_id);
-    if (prevPosts.length === 0) return false;
-    return prevPosts.some(p => {
-      const int = interactions.get(p.id);
-      return !int?.liked || !int?.commented;
-    });
+  const loadCloseFriends = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    const snap = await getDocs(collection(db, 'users', user.uid, 'closeFriends'));
+    setCloseFriendIds(new Set(snap.docs.map((d) => d.id)));
+    const intSnap = await getDocs(collection(db, 'users', user.uid, 'interactions'));
+    const map = new Map<string, { liked: boolean; commented: boolean }>();
+    intSnap.docs.forEach((d) => map.set(d.id, d.data() as any));
+    setInteractions(map);
   };
 
   const onRefresh = async () => {
@@ -67,19 +60,23 @@ export default function PlazaScreen() {
     setRefreshing(false);
   };
 
+  const isBlocked = (post: Post, index: number): boolean => {
+    if (!closeFriendIds.has(post.userId)) return false;
+    const prevPosts = posts.slice(0, index).filter((p) => p.userId === post.userId);
+    if (prevPosts.length === 0) return false;
+    return prevPosts.some((p) => {
+      const int = interactions.get(p.id);
+      return !int?.liked || !int?.commented;
+    });
+  };
+
   const handleLit = async (postId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = auth.currentUser;
     if (!user) return;
-
-    await supabase.from('likes').insert({ post_id: postId, user_id: user.id });
-    await supabase.rpc('increment_likes', { post_id: postId });
-
-    await supabase.from('interactions').upsert(
-      { user_id: user.id, post_id: postId, has_liked: true },
-      { onConflict: 'user_id,post_id' }
-    );
-
-    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, likes_count: p.likes_count + 1 } : p));
+    await setDoc(doc(db, 'likes', `${user.uid}_${postId}`), { userId: user.uid, postId, createdAt: serverTimestamp() });
+    await updateDoc(doc(db, 'posts', postId), { likesCount: increment(1) });
+    await setDoc(doc(db, 'users', user.uid, 'interactions', postId), { hasLiked: true }, { merge: true });
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, likesCount: (p.likesCount ?? 0) + 1 } : p));
     setInteractions((prev) => {
       const next = new Map(prev);
       next.set(postId, { liked: true, commented: prev.get(postId)?.commented ?? false });
@@ -89,18 +86,13 @@ export default function PlazaScreen() {
 
   const handleComment = async (text: string, score: number) => {
     if (!activePost) return;
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = auth.currentUser;
     if (!user) return;
-
-    await supabase.from('comments').insert({
-      post_id: activePost.id, user_id: user.id, content: text, sincerity_score: score,
+    await addDoc(collection(db, 'comments'), {
+      postId: activePost.id, userId: user.uid, content: text,
+      sincerityScore: score, createdAt: serverTimestamp(),
     });
-
-    await supabase.from('interactions').upsert(
-      { user_id: user.id, post_id: activePost.id, has_commented: true },
-      { onConflict: 'user_id,post_id' }
-    );
-
+    await setDoc(doc(db, 'users', user.uid, 'interactions', activePost.id), { hasCommented: true }, { merge: true });
     setInteractions((prev) => {
       const next = new Map(prev);
       next.set(activePost.id, { liked: prev.get(activePost.id)?.liked ?? false, commented: true });
@@ -111,26 +103,19 @@ export default function PlazaScreen() {
   const handlePublish = async () => {
     if (!newContent.trim()) return;
     setPublishing(true);
-
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = auth.currentUser;
     if (!user) { setPublishing(false); return; }
-
     const keywords = await extractKeywords(newContent);
-
-    const { error } = await supabase.from('posts').insert({
-      user_id: user.id,
-      content: newContent,
-      tier: newTier,
-      keywords,
-      likes_count: 0,
-    });
-
-    if (error) {
-      Alert.alert('发布失败', error.message);
-    } else {
+    try {
+      await addDoc(collection(db, 'posts'), {
+        userId: user.uid, content: newContent, tier: newTier,
+        keywords, likesCount: 0, createdAt: serverTimestamp(),
+      });
       setNewContent('');
       setShowPublish(false);
       await fetchPosts();
+    } catch (e: any) {
+      Alert.alert('发布失败', e.message);
     }
     setPublishing(false);
   };
@@ -167,11 +152,7 @@ export default function PlazaScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      <CommentModal
-        visible={!!activePost}
-        onClose={() => setActivePost(null)}
-        onSubmit={handleComment}
-      />
+      <CommentModal visible={!!activePost} onClose={() => setActivePost(null)} onSubmit={handleComment} />
 
       <Modal visible={showPublish} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.publishModal}>
@@ -181,26 +162,18 @@ export default function PlazaScreen() {
             </TouchableOpacity>
             <Text style={styles.publishTitle}>分享闪光时刻</Text>
             <TouchableOpacity onPress={handlePublish} disabled={publishing}>
-              <Text style={[styles.sendText, publishing && { opacity: 0.4 }]}>
-                {publishing ? '发布中...' : '发布'}
-              </Text>
+              <Text style={[styles.sendText, publishing && { opacity: 0.4 }]}>{publishing ? '发布中...' : '发布'}</Text>
             </TouchableOpacity>
           </View>
-
           <View style={styles.tierSelector}>
             {(['starlight', 'glimmer'] as const).map((t) => (
-              <TouchableOpacity
-                key={t}
-                style={[styles.tierBtn, newTier === t && styles.tierBtnActive]}
-                onPress={() => setNewTier(t)}
-              >
+              <TouchableOpacity key={t} style={[styles.tierBtn, newTier === t && styles.tierBtnActive]} onPress={() => setNewTier(t)}>
                 <Text style={[styles.tierBtnText, newTier === t && styles.tierBtnTextActive]}>
                   {t === 'starlight' ? '⭐ 星光' : '✨ 微光'}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-
           <TextInput
             style={styles.publishInput}
             multiline
@@ -218,40 +191,27 @@ export default function PlazaScreen() {
 
 const blockedCardStyle: any = {
   marginHorizontal: 16, marginVertical: 8, backgroundColor: 'rgba(192,132,252,0.07)',
-  borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(192,132,252,0.2)',
-  alignItems: 'center',
+  borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(192,132,252,0.2)', alignItems: 'center',
 };
-const blockedTextStyle: any = {
-  color: Colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20,
-};
+const blockedTextStyle: any = { color: Colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 12,
-  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
   headerTitle: { color: Colors.textPrimary, fontSize: 28, fontWeight: '300', letterSpacing: 2 },
   publishBtn: { borderRadius: 20, overflow: 'hidden' },
   publishGradient: { paddingHorizontal: 18, paddingVertical: 10 },
   publishBtnText: { color: '#fff', fontSize: 14, fontWeight: '500' },
   list: { paddingTop: 8, paddingBottom: 120 },
-
   publishModal: { flex: 1, backgroundColor: Colors.bg, padding: 20 },
   publishHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   cancelText: { color: Colors.textMuted, fontSize: 16 },
   publishTitle: { color: Colors.textPrimary, fontSize: 17, fontWeight: '500' },
   sendText: { color: Colors.primary, fontSize: 16, fontWeight: '600' },
   tierSelector: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  tierBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: 16, alignItems: 'center',
-    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
-  },
+  tierBtn: { flex: 1, paddingVertical: 12, borderRadius: 16, alignItems: 'center', backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
   tierBtnActive: { borderColor: Colors.primary, backgroundColor: 'rgba(192,132,252,0.12)' },
   tierBtnText: { color: Colors.textMuted, fontSize: 14 },
   tierBtnTextActive: { color: Colors.primary },
-  publishInput: {
-    flex: 1, color: Colors.textPrimary, fontSize: 17, lineHeight: 28,
-    textAlignVertical: 'top',
-  },
+  publishInput: { flex: 1, color: Colors.textPrimary, fontSize: 17, lineHeight: 28, textAlignVertical: 'top' },
 });

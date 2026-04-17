@@ -1,40 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { supabase } from '../lib/supabase';
-import { Session } from '@supabase/supabase-js';
-import { useRouter, useSegments } from 'expo-router';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from '../lib/firebase';
 
 export default function RootLayout() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [initialized, setInitialized] = useState(false);
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
       setInitialized(true);
     });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
+    return unsub;
   }, []);
 
   useEffect(() => {
     if (!initialized) return;
-
     const inAuth = segments[0] === '(auth)';
-
-    if (!session && !inAuth) {
-      router.replace('/(auth)/login');
-    } else if (session && inAuth) {
-      router.replace('/(tabs)/plaza');
-    }
-  }, [session, initialized, segments]);
+    if (!user && !inAuth) router.replace('/(auth)/login');
+    else if (user && inAuth) router.replace('/(tabs)/plaza');
+  }, [user, initialized, segments]);
 
   return (
     <>
