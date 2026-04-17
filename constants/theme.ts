@@ -1,18 +1,22 @@
 export const Colors = {
-  bg: '#0A0A0F',
-  surface: '#13131A',
-  border: 'rgba(255,255,255,0.08)',
-  primary: '#C084FC',
-  secondary: '#818CF8',
-  accent: '#F472B6',
-  gold: '#FBBF24',
-  textPrimary: '#F8FAFC',
-  textSecondary: '#94A3B8',
-  textMuted: '#475569',
+  bg: '#12090A',
+  surface: '#1E0F10',
+  border: 'rgba(255,180,140,0.1)',
+  primary: '#F4845F',
+  secondary: '#F0C27F',
+  accent: '#EC7FA9',
+  gold: '#F5C842',
+  textPrimary: '#FFF5F0',
+  textSecondary: '#C9A898',
+  textMuted: '#8C6B5E',
 };
 
 export const Gradients = {
-  starlight: ['#7C3AED', '#DB2777', '#F59E0B'] as const,
-  glimmer: ['#06B6D4', '#8B5CF6', '#EC4899'] as const,
-  splash: ['#0A0A0F', '#1A0A2E', '#0A1A2E'] as const,
+  starlight: ['#F5A623', '#F47B20', '#E5401A'] as const,
+  glimmer: ['#F4845F', '#EC7FA9', '#C97DD4'] as const,
+  splash: ['#12090A', '#1E0F18', '#0A0812'] as const,
+};
+
+export const Font = {
+  family: "'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif",
 };

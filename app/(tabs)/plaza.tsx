@@ -103,21 +103,23 @@ export default function PlazaScreen() {
   const handlePublish = async () => {
     if (!newContent.trim()) return;
     setPublishing(true);
-    const user = auth.currentUser;
-    if (!user) { setPublishing(false); return; }
-    const keywords = await extractKeywords(newContent);
     try {
+      const user = auth.currentUser;
+      if (!user) return;
+      let keywords: string[] = [];
+      try { keywords = await extractKeywords(newContent); } catch {}
       await addDoc(collection(db, 'posts'), {
         userId: user.uid, content: newContent, tier: newTier,
         keywords, likesCount: 0, createdAt: serverTimestamp(),
       });
       setNewContent('');
       setShowPublish(false);
-      await fetchPosts();
+      fetchPosts();
     } catch (e: any) {
       Alert.alert('发布失败', e.message);
+    } finally {
+      setPublishing(false);
     }
-    setPublishing(false);
   };
 
   return (
