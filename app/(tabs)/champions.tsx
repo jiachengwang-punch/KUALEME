@@ -5,6 +5,8 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, with
 import { collection, getDocs, orderBy, query, limit, addDoc, serverTimestamp, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Colors, Gradients } from '../../constants/theme';
+import { HapticPatterns } from '../../lib/haptics';
+import { Sounds } from '../../lib/audio';
 
 type Champion = {
   id: string;
@@ -58,6 +60,8 @@ export default function ChampionsScreen() {
   };
 
   const triggerMeteor = () => {
+    HapticPatterns.champion();
+    Sounds.champion();
     setShowMeteor(true);
     meteorOpacity.value = withSequence(
       withTiming(1, { duration: 400 }),

@@ -13,7 +13,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <style dangerouslySetInnerHTML={{
           __html: `
             * { font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif !important; }
-            body { background: #12090A; }
+            body { background: #070F18; }
           `
         }} />
         <ScrollViewStyleReset />

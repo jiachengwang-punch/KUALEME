@@ -6,6 +6,8 @@ import { doc, getDoc, updateDoc, collection, getDocs, addDoc, serverTimestamp } 
 import { signOut } from 'firebase/auth';
 import { auth, db, UserProfile } from '../../lib/firebase';
 import { generateAvatarColors } from '../../lib/openai';
+import { HapticPatterns } from '../../lib/haptics';
+import { Sounds } from '../../lib/audio';
 import { Colors, Gradients } from '../../constants/theme';
 import OpenAI from 'openai';
 
@@ -87,6 +89,8 @@ export default function ProfileScreen() {
       ],
     });
     setPolished(res.choices[0].message.content ?? '');
+    HapticPatterns.aiSuccess();
+    Sounds.aiDone();
     setPolishing(false);
   };
 
@@ -97,6 +101,8 @@ export default function ProfileScreen() {
       originalContent: btContent, polishedContent: polished,
       isLiked: false, createdAt: serverTimestamp(),
     });
+    HapticPatterns.deliver();
+    Sounds.deliver();
     Alert.alert('已投递', `高光简报已送达 ${selectedTarget.username}`);
     setShowBreakthrough(false);
     setBtContent(''); setPolished(''); setSelectedTarget(null);
