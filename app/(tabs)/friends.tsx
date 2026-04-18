@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, SafeArea
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { collection, doc, getDocs, setDoc, updateDoc, query, where, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db, UserProfile } from '../../lib/firebase';
+import { db, UserProfile } from '../../lib/firebase';
+import { usePostsContext } from '../../lib/PostsContext';
 import { Colors, Gradients } from '../../constants/theme';
 import StarGalaxy from '../../components/StarGalaxy';
 import AvatarView from '../../components/AvatarView';
@@ -12,13 +13,13 @@ type FriendEntry = { id: string; profile: UserProfile; interactionScore?: number
 type Request = { id: string; requesterId: string; profile: UserProfile };
 
 export default function FriendsScreen() {
+  const { uid } = usePostsContext();
   const [view, setView] = useState<'galaxy' | 'list'>('galaxy');
   const [friends, setFriends] = useState<FriendEntry[]>([]);
   const [closeFriendIds, setCloseFriendIds] = useState<Set<string>>(new Set());
   const [requests, setRequests] = useState<Request[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
-  const uid = auth.currentUser?.uid;
 
   useEffect(() => { if (uid) { fetchFriends(); fetchRequests(); fetchCloseFriends(); } }, [uid]);
 

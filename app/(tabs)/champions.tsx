@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Ale
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, withSequence, FadeInDown } from 'react-native-reanimated';
 import { collection, getDocs, orderBy, query, limit, addDoc, serverTimestamp, where, doc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
+import { usePostsContext } from '../../lib/PostsContext';
 import { Colors, Gradients } from '../../constants/theme';
 import { HapticPatterns } from '../../lib/haptics';
 import { Sounds } from '../../lib/audio';
@@ -29,7 +30,7 @@ export default function ChampionsScreen() {
   const [showMeteor, setShowMeteor] = useState(false);
   const [torchSent, setTorchSent] = useState(false);
   const meteorOpacity = useSharedValue(0);
-  const uid = auth.currentUser?.uid;
+  const { uid } = usePostsContext();
 
   useEffect(() => {
     fetchChampions().then(checkAndAutoEvaluate);

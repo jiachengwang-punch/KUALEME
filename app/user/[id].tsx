@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, collection, query, where, orderBy, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db, UserProfile, Post } from '../../lib/firebase';
 import { Colors, Gradients, Shadow, Layout, Typography } from '../../constants/theme';
 import AvatarView from '../../components/AvatarView';
@@ -27,12 +28,17 @@ export default function UserProfileScreen() {
   const [isFriend, setIsFriend] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
   const [loading, setLoading] = useState(true);
-  const uid = auth.currentUser?.uid;
+  const [uid, setUid] = useState<string | null>(auth.currentUser?.uid ?? null);
   const isSelf = uid === id;
 
   useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => setUid(u?.uid ?? null));
+    return unsub;
+  }, []);
+
+  useEffect(() => {
     if (id) loadProfile();
-  }, [id]);
+  }, [id, uid]);
 
   const loadProfile = async () => {
     setLoading(true);
