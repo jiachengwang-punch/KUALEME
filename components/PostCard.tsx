@@ -13,10 +13,10 @@ type Props = {
   post: Post;
   initialLiked?: boolean;
   onLike: (postId: string) => void;
-  onComment: (post: Post) => void;
+  onOpenComments: (post: Post) => void;
 };
 
-export default function PostCard({ post, initialLiked = false, onLike, onComment }: Props) {
+export default function PostCard({ post, initialLiked = false, onLike, onOpenComments }: Props) {
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [isRevealed, setIsRevealed] = useState(initialLiked);
   const scale = useSharedValue(1);
@@ -53,7 +53,7 @@ export default function PostCard({ post, initialLiked = false, onLike, onComment
         <LinearGradient colors={tierColors} style={StyleSheet.absoluteFill} />
       </Animated.View>
 
-      <TouchableOpacity activeOpacity={0.95} onLongPress={handleLongPress} delayLongPress={300} style={styles.card}>
+      <TouchableOpacity activeOpacity={0.95} onLongPress={handleLongPress} delayLongPress={700} style={styles.card}>
         <LinearGradient colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.01)']} style={styles.cardInner}>
           <View style={styles.header}>
             <View style={styles.avatarCircle}>
@@ -92,7 +92,7 @@ export default function PostCard({ post, initialLiked = false, onLike, onComment
               <Text style={styles.contentText}>{post.content}</Text>
               <View style={styles.actions}>
                 <Text style={styles.likesCount}>♥ {post.likesCount ?? 0}</Text>
-                <TouchableOpacity style={styles.commentBtn} onPress={() => onComment(post)}>
+                <TouchableOpacity style={styles.commentBtn} onPress={() => onOpenComments(post)}>
                   <Text style={styles.commentBtnText}>说点什么 ✦</Text>
                 </TouchableOpacity>
               </View>

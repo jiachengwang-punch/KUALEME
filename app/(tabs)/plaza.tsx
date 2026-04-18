@@ -6,7 +6,7 @@ import { collection, query, orderBy, limit, getDocs, addDoc, doc, updateDoc, inc
 import { auth, db, Post } from '../../lib/firebase';
 import { extractKeywords } from '../../lib/openai';
 import PostCard from '../../components/PostCard';
-import CommentModal from '../../components/CommentModal';
+import CommentsSheet from '../../components/CommentsSheet';
 import { Colors, Gradients } from '../../constants/theme';
 import { TextInput } from 'react-native';
 
@@ -84,7 +84,11 @@ export default function PlazaScreen() {
   const handleLike = async (postId: string) => {
     const user = auth.currentUser;
     if (!user) return;
-    await setDoc(doc(db, 'likes', `${user.uid}_${postId}`), { userId: user.uid, postId, createdAt: serverTimestamp() });
+    if (likedPostIds.has(postId)) return;
+    const likeRef = doc(db, 'likes', `${user.uid}_${postId}`);
+    const existing = await getDoc(likeRef);
+    if (existing.exists()) return;
+    await setDoc(likeRef, { userId: user.uid, postId, createdAt: serverTimestamp() });
     await updateDoc(doc(db, 'posts', postId), { likesCount: increment(1) });
     await setDoc(doc(db, 'users', user.uid, 'interactions', postId), { hasLiked: true }, { merge: true });
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, likesCount: (p.likesCount ?? 0) + 1 } : p));
@@ -157,7 +161,7 @@ export default function PlazaScreen() {
                 <Text style={blockedTextStyle}>请先为前一条动态点亮并留言，才能继续浏览 TA 的内容 ✦</Text>
               </View>
             ) : (
-              <PostCard post={item} initialLiked={likedPostIds.has(item.id)} onLike={handleLike} onComment={(p) => setActivePost(p)} />
+              <PostCard post={item} initialLiked={likedPostIds.has(item.id)} onLike={handleLike} onOpenComments={(p) => setActivePost(p)} />
             )}
           </Animated.View>
         )}
@@ -166,7 +170,13 @@ export default function PlazaScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      <CommentModal visible={!!activePost} onClose={() => setActivePost(null)} onSubmit={handleComment} />
+      <CommentsSheet
+        visible={!!activePost}
+        postId={activePost?.id ?? ''}
+        postContent={activePost?.content ?? ''}
+        onClose={() => setActivePost(null)}
+        onSubmit={handleComment}
+      />
 
       <Modal visible={showPublish} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.publishModal}>
