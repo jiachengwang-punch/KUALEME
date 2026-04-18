@@ -6,7 +6,7 @@ import {
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, FadeOut, SlideInDown } from 'react-native-reanimated';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { checkCommentTone } from '../lib/openai';
 import { Colors } from '../constants/theme';
@@ -44,7 +44,7 @@ export default function CommentsSheet({ visible, postId, postContent, onClose, o
   const fetchComments = async () => {
     setLoadingComments(true);
     try {
-      const q = query(collection(db, 'comments'), where('postId', '==', postId), orderBy('createdAt', 'desc'));
+      const q = query(collection(db, 'comments'), where('postId', '==', postId));
       const snap = await getDocs(q);
       const list: Comment[] = [];
       for (const d of snap.docs) {
@@ -61,6 +61,7 @@ export default function CommentsSheet({ visible, postId, postContent, onClose, o
         } catch {}
         list.push({ id: d.id, ...data, username, avatarColors } as Comment);
       }
+      list.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
       setComments(list);
     } finally {
       setLoadingComments(false);

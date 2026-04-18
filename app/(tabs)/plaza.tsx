@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, Alert, Refre
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { collection, query, orderBy, limit, getDocs, addDoc, doc, updateDoc, increment, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db, Post } from '../../lib/firebase';
 import { extractKeywords } from '../../lib/openai';
 import PostCard from '../../components/PostCard';
@@ -24,12 +25,11 @@ export default function PlazaScreen() {
   const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const init = async () => {
-      await loadUserData();
-      await fetchPosts();
-      setLoading(false);
-    };
-    init();
+    fetchPosts();
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) loadUserData(user.uid);
+    });
+    return unsub;
   }, []);
 
   const fetchPosts = useCallback(async () => {
@@ -48,12 +48,10 @@ export default function PlazaScreen() {
     setPosts(items);
   }, []);
 
-  const loadUserData = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-    const cfSnap = await getDocs(collection(db, 'users', user.uid, 'closeFriends'));
+  const loadUserData = async (uid: string) => {
+    const cfSnap = await getDocs(collection(db, 'users', uid, 'closeFriends'));
     setCloseFriendIds(new Set(cfSnap.docs.map((d) => d.id)));
-    const intSnap = await getDocs(collection(db, 'users', user.uid, 'interactions'));
+    const intSnap = await getDocs(collection(db, 'users', uid, 'interactions'));
     const map = new Map<string, { liked: boolean; commented: boolean }>();
     const liked = new Set<string>();
     intSnap.docs.forEach((d) => {
@@ -63,11 +61,13 @@ export default function PlazaScreen() {
     });
     setInteractions(map);
     setLikedPostIds(liked);
+    setLoading(false);
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadUserData(), fetchPosts()]);
+    const uid = auth.currentUser?.uid;
+    await Promise.all([uid ? loadUserData(uid) : Promise.resolve(), fetchPosts()]);
     setRefreshing(false);
   };
 
