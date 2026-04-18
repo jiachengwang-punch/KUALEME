@@ -74,16 +74,50 @@ export default function ProfileScreen() {
 
   const pickAndUploadAvatar = async () => {
     if (!uid) return;
-    if (Platform.OS !== 'web') {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) { Alert.alert('需要相册权限'); return; }
+
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const src = ev.target?.result as string;
+          if (!src) return;
+          const img = new Image();
+          img.onload = async () => {
+            const size = 300;
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d')!;
+            const min = Math.min(img.width, img.height);
+            const sx = (img.width - min) / 2;
+            const sy = (img.height - min) / 2;
+            ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+            const dataUri = canvas.toDataURL('image/jpeg', 0.6);
+            try {
+              await updateDoc(doc(db, 'users', uid), { avatarUrl: dataUri });
+              setProfile((prev) => prev ? { ...prev, avatarUrl: dataUri } : prev);
+            } catch (err: any) {
+              Alert.alert('上传失败', err.message);
+            }
+          };
+          img.src = src;
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+      return;
     }
+
+    // native
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) { Alert.alert('需要相册权限'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: Platform.OS !== 'web',
-      aspect: [1, 1],
-      quality: 0.5,
-      base64: true,
+      mediaTypes: ['images'], allowsEditing: true,
+      aspect: [1, 1], quality: 0.5, base64: true,
     });
     if (result.canceled) return;
     try {
@@ -92,8 +126,8 @@ export default function ProfileScreen() {
       const dataUri = `data:image/jpeg;base64,${b64}`;
       await updateDoc(doc(db, 'users', uid), { avatarUrl: dataUri });
       setProfile((prev) => prev ? { ...prev, avatarUrl: dataUri } : prev);
-    } catch (e: any) {
-      Alert.alert('上传失败', e.message);
+    } catch (err: any) {
+      Alert.alert('上传失败', err.message);
     }
   };
 

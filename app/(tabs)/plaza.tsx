@@ -38,24 +38,31 @@ export default function PlazaScreen() {
   const fetchPosts = useCallback(async () => {
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(30));
     const snap = await getDocs(q);
-    const items: Post[] = [];
-    for (const d of snap.docs) {
-      const data = d.data();
-      let profile;
+    // deduplicate userIds, fetch all profiles in parallel
+    const userIds = [...new Set(snap.docs.map((d) => d.data().userId as string))];
+    const profileMap = new Map<string, any>();
+    await Promise.all(userIds.map(async (uid) => {
       try {
-        const pSnap = await getDoc(doc(db, 'users', data.userId));
-        if (pSnap.exists()) profile = { id: pSnap.id, ...pSnap.data() } as any;
+        const pSnap = await getDoc(doc(db, 'users', uid));
+        if (pSnap.exists()) profileMap.set(uid, { id: pSnap.id, ...pSnap.data() });
       } catch {}
-      items.push({ id: d.id, ...data, profile } as Post);
-    }
-    setPosts(items);
+    }));
+    setPosts(snap.docs.map((d) => ({
+      id: d.id, ...d.data(), profile: profileMap.get(d.data().userId),
+    } as Post)));
   }, []);
 
   const loadUserData = async (uid: string) => {
-    const cfSnap = await getDocs(collection(db, 'users', uid, 'closeFriends'));
+    // all four subcollection reads in parallel
+    const [cfSnap, intSnap, notifSnap, pSnap] = await Promise.all([
+      getDocs(collection(db, 'users', uid, 'closeFriends')),
+      getDocs(collection(db, 'users', uid, 'interactions')),
+      getDocs(collection(db, 'users', uid, 'notifications')),
+      getDoc(doc(db, 'users', uid)),
+    ]);
+
     setCloseFriendIds(new Set(cfSnap.docs.map((d) => d.id)));
 
-    const intSnap = await getDocs(collection(db, 'users', uid, 'interactions'));
     const map = new Map<string, { liked: boolean; commented: boolean }>();
     const liked = new Set<string>();
     intSnap.docs.forEach((d) => {
@@ -66,15 +73,10 @@ export default function PlazaScreen() {
     setInteractions(map);
     setLikedPostIds(liked);
 
-    // load unread notifications
-    const notifSnap = await getDocs(collection(db, 'users', uid, 'notifications'));
-    const unread: Notification[] = notifSnap.docs
+    setNotifications(notifSnap.docs
       .filter((d) => !d.data().read)
-      .map((d) => ({ id: d.id, fromUsername: d.data().fromUsername ?? '好友', fromUserId: d.data().fromUserId ?? '' }));
-    setNotifications(unread);
+      .map((d) => ({ id: d.id, fromUsername: d.data().fromUsername ?? '好友', fromUserId: d.data().fromUserId ?? '' })));
 
-    // load own profile for publish notifications
-    const pSnap = await getDoc(doc(db, 'users', uid));
     if (pSnap.exists()) setUserProfile({ username: (pSnap.data() as any).username ?? '我' });
 
     setLoading(false);
