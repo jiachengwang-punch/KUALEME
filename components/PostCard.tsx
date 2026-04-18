@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -14,11 +14,14 @@ import { Sounds } from '../lib/audio';
 type Props = {
   post: Post;
   initialLiked?: boolean;
+  currentUserId?: string;
   onLike: (postId: string) => void;
   onOpenComments: (post: Post) => void;
+  onDelete?: (postId: string) => void;
+  onPressUser?: (userId: string) => void;
 };
 
-export default function PostCard({ post, initialLiked = false, onLike, onOpenComments }: Props) {
+export default function PostCard({ post, initialLiked = false, currentUserId, onLike, onOpenComments, onDelete, onPressUser }: Props) {
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [isRevealed, setIsRevealed] = useState(initialLiked);
   const scale = useSharedValue(1);
@@ -42,11 +45,19 @@ export default function PostCard({ post, initialLiked = false, onLike, onOpenCom
     runOnJS(triggerLike)();
   };
 
+  const handleDelete = () => {
+    Alert.alert('删除动态', '确定要删除这条动态吗？', [
+      { text: '取消', style: 'cancel' },
+      { text: '删除', style: 'destructive', onPress: () => onDelete?.(post.id) },
+    ]);
+  };
+
   const isStarlight = post.tier === 'starlight';
   const tierColors = isStarlight ? Gradients.starlight : Gradients.glimmer;
   const tierLabel = isStarlight ? '⭐ 星光' : '✨ 微光';
   const avatarColors = (post.profile?.avatarColors ?? tierColors) as [string, string, string];
   const avatarUrl = post.profile?.avatarUrl;
+  const isOwn = currentUserId && post.userId === currentUserId;
 
   return (
     <Animated.View style={[styles.wrapper, Shadow.card, cardStyle]}>
@@ -58,17 +69,26 @@ export default function PostCard({ post, initialLiked = false, onLike, onOpenCom
         <BlurView intensity={Layout.blur} tint="light" style={styles.blur}>
           <View style={styles.inner}>
             <View style={styles.header}>
-              <AvatarView url={avatarUrl} colors={avatarColors} size={42} />
-              <View style={styles.meta}>
-                <Text style={styles.username}>{post.profile?.username ?? '匿名'}</Text>
-                <Text style={styles.tier}>{tierLabel}</Text>
-              </View>
-              {isLiked && (
-                <View style={styles.likedPill}>
-                  <LinearGradient colors={Gradients.starlight} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-                  <Text style={styles.likedPillText}>已点赞</Text>
+              <TouchableOpacity onPress={() => onPressUser?.(post.userId)} activeOpacity={0.7} style={styles.userBtn}>
+                <AvatarView url={avatarUrl} colors={avatarColors} size={42} />
+                <View style={styles.meta}>
+                  <Text style={styles.username}>{post.profile?.username ?? '匿名'}</Text>
+                  <Text style={styles.tier}>{tierLabel}</Text>
                 </View>
-              )}
+              </TouchableOpacity>
+              <View style={styles.headerRight}>
+                {isLiked && (
+                  <View style={styles.likedPill}>
+                    <LinearGradient colors={Gradients.starlight} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+                    <Text style={styles.likedPillText}>已点赞</Text>
+                  </View>
+                )}
+                {isOwn && (
+                  <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Text style={styles.deleteBtnText}>×</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
 
             {!isRevealed ? (
@@ -126,8 +146,10 @@ const styles = StyleSheet.create({
     padding: 18,
     backgroundColor: Colors.surface,
   },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  userBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   meta: { flex: 1 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   username: { ...Typography.username, color: Colors.textPrimary },
   tier: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
   likedPill: {
@@ -135,6 +157,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden', minWidth: 56, alignItems: 'center',
   },
   likedPillText: { color: '#fff', fontSize: 12, fontWeight: '500' },
+  deleteBtn: { padding: 4 },
+  deleteBtnText: { color: Colors.textMuted, fontSize: 20, lineHeight: 20 },
   locked: { alignItems: 'center', paddingVertical: 18, gap: 12 },
   lockHint: { fontSize: 13, color: Colors.textMuted, letterSpacing: 1 },
   keywords: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
