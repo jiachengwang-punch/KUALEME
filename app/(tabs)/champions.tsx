@@ -29,11 +29,11 @@ export default function ChampionsScreen() {
   const [showMeteor, setShowMeteor] = useState(false);
   const [torchSent, setTorchSent] = useState(false);
   const meteorOpacity = useSharedValue(0);
-  const now = new Date();
-  const canEvaluate = now.getHours() === 12 || now.getHours() === 22;
   const uid = auth.currentUser?.uid;
 
-  useEffect(() => { fetchChampions(); }, []);
+  useEffect(() => {
+    fetchChampions().then(checkAndAutoEvaluate);
+  }, []);
 
   useEffect(() => {
     if (tab === 'leaderboard' && leaderboard.length === 0) fetchLeaderboard();
@@ -56,21 +56,50 @@ export default function ChampionsScreen() {
     setLoadingBoard(false);
   };
 
-  const evaluateChampions = async () => {
-    const today = new Date().toISOString().split('T')[0];
-    const period = new Date().getHours() < 18 ? 'noon' : 'night';
-    const postsSnap = await getDocs(query(collection(db, 'posts'), where('tier', '==', 'starlight'), orderBy('likesCount', 'desc'), limit(1)));
-    const commentsSnap = await getDocs(query(collection(db, 'comments'), orderBy('sincerityScore', 'desc'), limit(1)));
+  const evaluatePeriod = async (today: string, period: 'noon' | 'night') => {
+    const [postsSnap, commentsSnap] = await Promise.all([
+      getDocs(query(collection(db, 'posts'), where('tier', '==', 'starlight'), orderBy('likesCount', 'desc'), limit(1))),
+      getDocs(query(collection(db, 'comments'), orderBy('sincerityScore', 'desc'), limit(1))),
+    ]);
+    const writes: Promise<any>[] = [];
     if (!postsSnap.empty) {
       const p = postsSnap.docs[0].data();
-      await addDoc(collection(db, 'champions'), { type: 'peak', period, date: today, postContent: p.content, userId: p.userId, createdAt: serverTimestamp() });
+      writes.push(addDoc(collection(db, 'champions'), { type: 'peak', period, date: today, postContent: p.content, userId: p.userId, createdAt: serverTimestamp() }));
     }
     if (!commentsSnap.empty) {
       const c = commentsSnap.docs[0].data();
-      await addDoc(collection(db, 'champions'), { type: 'healing', period, date: today, commentContent: c.content, userId: c.userId, createdAt: serverTimestamp() });
+      writes.push(addDoc(collection(db, 'champions'), { type: 'healing', period, date: today, commentContent: c.content, userId: c.userId, createdAt: serverTimestamp() }));
     }
-    triggerMeteor();
-    fetchChampions();
+    if (writes.length > 0) {
+      await Promise.all(writes);
+      triggerMeteor();
+      fetchChampions();
+    }
+  };
+
+  // Runs on mount: checks which periods are overdue and have no record yet
+  const checkAndAutoEvaluate = async () => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const hour = now.getHours();
+
+    const periods: { period: 'noon' | 'night'; triggerHour: number }[] = [
+      { period: 'noon', triggerHour: 12 },
+      { period: 'night', triggerHour: 22 },
+    ];
+
+    for (const { period, triggerHour } of periods) {
+      if (hour < triggerHour) continue;
+      // Check if this period already has a record for today
+      const existing = await getDocs(query(
+        collection(db, 'champions'),
+        where('date', '==', today),
+        where('period', '==', period),
+      ));
+      if (existing.empty) {
+        await evaluatePeriod(today, period);
+      }
+    }
   };
 
   const passTheTorch = async () => {
@@ -110,13 +139,11 @@ export default function ChampionsScreen() {
                 <Text style={styles.torchBtnText}>传递火把 ★</Text>
               </TouchableOpacity>
             )}
-            {canEvaluate && (
-              <TouchableOpacity style={styles.evalBtn} onPress={evaluateChampions}>
-                <LinearGradient colors={Gradients.starlight} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.evalGradient}>
-                  <Text style={styles.evalText}>评选冠军</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity style={styles.evalBtn} onPress={checkAndAutoEvaluate}>
+              <LinearGradient colors={Gradients.starlight} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.evalGradient}>
+                <Text style={styles.evalText}>刷新评选</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
         </View>
 
