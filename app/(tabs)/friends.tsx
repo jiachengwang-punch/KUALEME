@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { collection, doc, getDocs, setDoc, updateDoc, query, where, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, UserProfile } from '../../lib/firebase';
-import { Colors } from '../../constants/theme';
+import { Colors, Gradients } from '../../constants/theme';
 import StarGalaxy from '../../components/StarGalaxy';
 
 type FriendEntry = { id: string; profile: UserProfile };
@@ -96,6 +96,7 @@ export default function FriendsScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient colors={['#0A0F1E', '#161B2D']} style={StyleSheet.absoluteFill} />
       <SafeAreaView>
         <View style={styles.header}>
           <Text style={styles.title}>星链</Text>
@@ -178,12 +179,12 @@ function AvatarCircle({ colors, size }: { colors?: string[]; size: number }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
-  title: { color: Colors.textPrimary, fontSize: 28, fontWeight: '300', letterSpacing: 2 },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14 },
+  title: { color: Colors.textPrimary, fontSize: 24, fontWeight: '600', letterSpacing: 1 },
   viewToggle: { flexDirection: 'row', gap: 8 },
-  toggleBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 14, backgroundColor: Colors.surface },
-  toggleActive: { backgroundColor: 'rgba(192,132,252,0.2)' },
+  toggleBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+  toggleActive: { backgroundColor: 'rgba(255,179,71,0.15)', borderColor: Colors.primary },
   toggleText: { color: Colors.textMuted, fontSize: 13 },
   toggleTextActive: { color: Colors.primary },
   list: { paddingBottom: 100 },
@@ -195,11 +196,11 @@ const styles = StyleSheet.create({
   friendRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 20 },
   username: { color: Colors.textPrimary, fontSize: 15 },
   coreTag: { color: Colors.primary, fontSize: 11, marginTop: 2 },
-  acceptBtn: { backgroundColor: 'rgba(192,132,252,0.2)', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 7 },
+  acceptBtn: { backgroundColor: 'rgba(255,179,71,0.15)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: Colors.primary },
   acceptBtnText: { color: Colors.primary, fontSize: 13 },
-  addBtn: { backgroundColor: Colors.surface, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: Colors.border },
+  addBtn: { backgroundColor: Colors.surface, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: Colors.border },
   addBtnText: { color: Colors.textSecondary, fontSize: 13 },
-  coreBtn: { backgroundColor: Colors.surface, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: Colors.border },
-  coreBtnActive: { borderColor: Colors.primary, backgroundColor: 'rgba(192,132,252,0.15)' },
+  coreBtn: { backgroundColor: Colors.surface, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: Colors.border },
+  coreBtnActive: { borderColor: Colors.primary, backgroundColor: 'rgba(255,179,71,0.15)' },
   coreBtnText: { color: Colors.textMuted, fontSize: 12 },
 });

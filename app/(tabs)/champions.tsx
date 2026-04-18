@@ -74,6 +74,7 @@ export default function ChampionsScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient colors={['#0A0F1E', '#161B2D']} style={StyleSheet.absoluteFill} />
       <SafeAreaView>
         <View style={styles.header}>
           <Text style={styles.title}>冠军</Text>
@@ -115,7 +116,7 @@ export default function ChampionsScreen() {
 
       {showMeteor && (
         <Animated.View style={[styles.meteorOverlay, meteorStyle]} pointerEvents="none">
-          <LinearGradient colors={['rgba(124,58,237,0.9)', 'rgba(219,39,119,0.9)', 'rgba(0,0,0,0)']} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={['rgba(255,179,71,0.9)', 'rgba(255,126,95,0.85)', 'rgba(0,0,0,0)']} style={StyleSheet.absoluteFill} />
           <Text style={styles.meteorTitle}>冠军诞生 ★</Text>
         </Animated.View>
       )}
@@ -124,9 +125,9 @@ export default function ChampionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
-  title: { color: Colors.textPrimary, fontSize: 28, fontWeight: '300', letterSpacing: 2 },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14 },
+  title: { color: Colors.textPrimary, fontSize: 24, fontWeight: '600', letterSpacing: 1 },
   evalBtn: { borderRadius: 16, overflow: 'hidden' },
   evalGradient: { paddingHorizontal: 16, paddingVertical: 9 },
   evalText: { color: '#fff', fontSize: 13, fontWeight: '500' },
@@ -141,5 +142,5 @@ const styles = StyleSheet.create({
   cardDate: { color: Colors.textMuted, fontSize: 12 },
   cardContent: { color: Colors.textPrimary, fontSize: 15, lineHeight: 24 },
   meteorOverlay: { position: 'absolute', inset: 0, justifyContent: 'center', alignItems: 'center', zIndex: 999 },
-  meteorTitle: { color: '#fff', fontSize: 36, fontWeight: '300', letterSpacing: 4 },
+  meteorTitle: { color: '#fff', fontSize: 36, fontWeight: '600', letterSpacing: 4 },
 });

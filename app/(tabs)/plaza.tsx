@@ -140,11 +140,12 @@ export default function PlazaScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient colors={['#0A0F1E', '#161B2D']} style={StyleSheet.absoluteFill} />
       <SafeAreaView>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>广场</Text>
           <TouchableOpacity style={styles.publishBtn} onPress={() => setShowPublish(true)}>
-            <LinearGradient colors={['#7C3AED', '#EC4899']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.publishGradient}>
+            <LinearGradient colors={['#FFB347', '#FFCC33']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.publishGradient}>
               <Text style={styles.publishBtnText}>+ 分享</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -220,21 +221,21 @@ const blockedCardStyle: any = {
 const blockedTextStyle: any = { color: Colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
-  headerTitle: { color: Colors.textPrimary, fontSize: 28, fontWeight: '300', letterSpacing: 2 },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14 },
+  headerTitle: { color: Colors.textPrimary, fontSize: 24, fontWeight: '600', letterSpacing: 1 },
   publishBtn: { borderRadius: 20, overflow: 'hidden' },
   publishGradient: { paddingHorizontal: 18, paddingVertical: 10 },
   publishBtnText: { color: '#fff', fontSize: 14, fontWeight: '500' },
   list: { paddingTop: 8, paddingBottom: 120 },
-  publishModal: { flex: 1, backgroundColor: Colors.bg, padding: 20 },
+  publishModal: { flex: 1, backgroundColor: '#0A0F1E', padding: 20 },
   publishHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   cancelText: { color: Colors.textMuted, fontSize: 16 },
   publishTitle: { color: Colors.textPrimary, fontSize: 17, fontWeight: '500' },
   sendText: { color: Colors.primary, fontSize: 16, fontWeight: '600' },
   tierSelector: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   tierBtn: { flex: 1, paddingVertical: 12, borderRadius: 16, alignItems: 'center', backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
-  tierBtnActive: { borderColor: Colors.primary, backgroundColor: 'rgba(192,132,252,0.12)' },
+  tierBtnActive: { borderColor: Colors.primary, backgroundColor: 'rgba(255,179,71,0.12)' },
   tierBtnText: { color: Colors.textMuted, fontSize: 14 },
   tierBtnTextActive: { color: Colors.primary },
   publishInput: { flex: 1, color: Colors.textPrimary, fontSize: 17, lineHeight: 28, textAlignVertical: 'top' },

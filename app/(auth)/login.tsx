@@ -73,7 +73,7 @@ export default function LoginScreen() {
           ) : null}
 
           <TouchableOpacity style={[styles.btn, loading && styles.btnDisabled]} onPress={handleAuth} disabled={loading}>
-            <LinearGradient colors={['#7C3AED', '#EC4899']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btnGradient}>
+            <LinearGradient colors={Gradients.starlight} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.btnGradient}>
               <Text style={styles.btnText}>{loading ? '处理中...' : (isSignUp ? '注册' : '进入')}</Text>
             </LinearGradient>
           </TouchableOpacity>

@@ -118,6 +118,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
+      <LinearGradient colors={['#0A0F1E', '#161B2D']} style={StyleSheet.absoluteFill} />
       <SafeAreaView>
         <View style={styles.header}>
           <Text style={styles.title}>我</Text>
@@ -153,7 +154,7 @@ export default function ProfileScreen() {
                 <Text style={styles.btContent}>{bt.polishedContent}</Text>
                 {!bt.isLiked ? (
                   <TouchableOpacity style={styles.likeBtn} onPress={() => likeBreakthrough(bt.id)}>
-                    <LinearGradient colors={['#7C3AED', '#EC4899']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.likeBtnGradient}>
+                    <LinearGradient colors={Gradients.starlight} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.likeBtnGradient}>
                       <Text style={styles.likeBtnText}>点亮 TA ✦</Text>
                     </LinearGradient>
                   </TouchableOpacity>
@@ -219,9 +220,9 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
-  title: { color: Colors.textPrimary, fontSize: 28, fontWeight: '300', letterSpacing: 2 },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14 },
+  title: { color: Colors.textPrimary, fontSize: 24, fontWeight: '600', letterSpacing: 1 },
   signOutBtn: { padding: 8 },
   signOutText: { color: Colors.textMuted, fontSize: 14 },
   scroll: { paddingHorizontal: 20, paddingBottom: 100 },
@@ -237,7 +238,7 @@ const styles = StyleSheet.create({
   section: { marginBottom: 24 },
   sectionTitle: { color: Colors.textSecondary, fontSize: 13, letterSpacing: 1, marginBottom: 12 },
   btCard: { backgroundColor: Colors.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: Colors.border, gap: 8 },
-  btSent: { borderColor: 'rgba(192,132,252,0.2)' },
+  btSent: { borderColor: 'rgba(255,179,71,0.2)' },
   btFrom: { color: Colors.textMuted, fontSize: 12 },
   btContent: { color: Colors.textPrimary, fontSize: 15, lineHeight: 22 },
   likeBtn: { borderRadius: 12, overflow: 'hidden', alignSelf: 'flex-start' },
@@ -246,7 +247,7 @@ const styles = StyleSheet.create({
   likedTag: { color: Colors.primary, fontSize: 13 },
   btStatus: { color: Colors.textMuted, fontSize: 12 },
   btStatusLiked: { color: Colors.primary },
-  modal: { flex: 1, backgroundColor: Colors.bg },
+  modal: { flex: 1, backgroundColor: '#0A0F1E' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: Colors.border },
   cancelText: { color: Colors.textMuted, fontSize: 16 },
   modalTitle: { color: Colors.textPrimary, fontSize: 17, fontWeight: '500' },
@@ -258,9 +259,9 @@ const styles = StyleSheet.create({
   targetRowSelected: { borderWidth: 1, borderColor: Colors.primary },
   targetName: { color: Colors.textPrimary, fontSize: 15 },
   selectedMark: { color: Colors.primary, fontSize: 16 },
-  polishBtn: { backgroundColor: 'rgba(192,132,252,0.15)', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 8, borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)' },
+  polishBtn: { backgroundColor: 'rgba(255,179,71,0.12)', borderRadius: 20, paddingVertical: 14, alignItems: 'center', marginTop: 8, borderWidth: 1, borderColor: 'rgba(255,179,71,0.35)' },
   polishBtnText: { color: Colors.primary, fontSize: 15, fontWeight: '500' },
-  polishedBox: { backgroundColor: Colors.surface, borderRadius: 16, padding: 16, marginTop: 16, borderWidth: 1, borderColor: 'rgba(192,132,252,0.3)', gap: 10 },
+  polishedBox: { backgroundColor: Colors.surface, borderRadius: 16, padding: 16, marginTop: 16, borderWidth: 1, borderColor: 'rgba(255,179,71,0.25)', gap: 10 },
   polishedLabel: { color: Colors.primary, fontSize: 12, letterSpacing: 1 },
   polishedText: { color: Colors.textPrimary, fontSize: 16, lineHeight: 26 },
 });
