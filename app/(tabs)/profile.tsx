@@ -91,8 +91,16 @@ export default function ProfileScreen() {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+
+      const cleanup = () => {
+        if (document.body.contains(input)) document.body.removeChild(input);
+      };
+
       input.onchange = (e) => {
         const file = (e.target as HTMLInputElement).files?.[0];
+        cleanup();
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
@@ -120,6 +128,11 @@ export default function ProfileScreen() {
         };
         reader.readAsDataURL(file);
       };
+
+      // 用户取消选择时清理（window focus 在对话框关闭后触发）
+      const onFocus = () => { setTimeout(cleanup, 300); window.removeEventListener('focus', onFocus); };
+      window.addEventListener('focus', onFocus);
+
       input.click();
       return;
     }
