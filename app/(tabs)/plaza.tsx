@@ -21,10 +21,15 @@ export default function PlazaScreen() {
   const [publishing, setPublishing] = useState(false);
   const [closeFriendIds, setCloseFriendIds] = useState<Set<string>>(new Set());
   const [interactions, setInteractions] = useState<Map<string, { liked: boolean; commented: boolean }>>(new Map());
+  const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchPosts().finally(() => setLoading(false));
-    loadCloseFriends();
+    const init = async () => {
+      await loadUserData();
+      await fetchPosts();
+      setLoading(false);
+    };
+    init();
   }, []);
 
   const fetchPosts = useCallback(async () => {
@@ -43,20 +48,26 @@ export default function PlazaScreen() {
     setPosts(items);
   }, []);
 
-  const loadCloseFriends = async () => {
+  const loadUserData = async () => {
     const user = auth.currentUser;
     if (!user) return;
-    const snap = await getDocs(collection(db, 'users', user.uid, 'closeFriends'));
-    setCloseFriendIds(new Set(snap.docs.map((d) => d.id)));
+    const cfSnap = await getDocs(collection(db, 'users', user.uid, 'closeFriends'));
+    setCloseFriendIds(new Set(cfSnap.docs.map((d) => d.id)));
     const intSnap = await getDocs(collection(db, 'users', user.uid, 'interactions'));
     const map = new Map<string, { liked: boolean; commented: boolean }>();
-    intSnap.docs.forEach((d) => map.set(d.id, d.data() as any));
+    const liked = new Set<string>();
+    intSnap.docs.forEach((d) => {
+      const data = d.data() as any;
+      map.set(d.id, { liked: !!data.hasLiked, commented: !!data.hasCommented });
+      if (data.hasLiked) liked.add(d.id);
+    });
     setInteractions(map);
+    setLikedPostIds(liked);
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchPosts();
+    await Promise.all([loadUserData(), fetchPosts()]);
     setRefreshing(false);
   };
 
@@ -70,13 +81,14 @@ export default function PlazaScreen() {
     });
   };
 
-  const handleLit = async (postId: string) => {
+  const handleLike = async (postId: string) => {
     const user = auth.currentUser;
     if (!user) return;
     await setDoc(doc(db, 'likes', `${user.uid}_${postId}`), { userId: user.uid, postId, createdAt: serverTimestamp() });
     await updateDoc(doc(db, 'posts', postId), { likesCount: increment(1) });
     await setDoc(doc(db, 'users', user.uid, 'interactions', postId), { hasLiked: true }, { merge: true });
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, likesCount: (p.likesCount ?? 0) + 1 } : p));
+    setLikedPostIds((prev) => new Set([...prev, postId]));
     setInteractions((prev) => {
       const next = new Map(prev);
       next.set(postId, { liked: true, commented: prev.get(postId)?.commented ?? false });
@@ -145,7 +157,7 @@ export default function PlazaScreen() {
                 <Text style={blockedTextStyle}>请先为前一条动态点亮并留言，才能继续浏览 TA 的内容 ✦</Text>
               </View>
             ) : (
-              <PostCard post={item} onLit={handleLit} onComment={(p) => setActivePost(p)} />
+              <PostCard post={item} initialLiked={likedPostIds.has(item.id)} onLike={handleLike} onComment={(p) => setActivePost(p)} />
             )}
           </Animated.View>
         )}
