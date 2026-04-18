@@ -34,6 +34,8 @@ export type Post = {
   likesCount: number;
   createdAt: string;
   profile?: UserProfile;
+  featuredUntil?: any;
+  featuredBy?: string;
 };
 
 export type Comment = {

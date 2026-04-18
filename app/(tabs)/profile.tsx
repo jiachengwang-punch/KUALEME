@@ -11,6 +11,7 @@ import { HapticPatterns } from '../../lib/haptics';
 import { Sounds } from '../../lib/audio';
 import { Colors, Gradients } from '../../constants/theme';
 import AvatarView from '../../components/AvatarView';
+import InviteCard from '../../components/InviteCard';
 import OpenAI from 'openai';
 
 type Breakthrough = {
@@ -35,6 +36,7 @@ export default function ProfileScreen() {
   const [btContent, setBtContent] = useState('');
   const [polishing, setPolishing] = useState(false);
   const [polished, setPolished] = useState('');
+  const [showInvite, setShowInvite] = useState(false);
   const uid = auth.currentUser?.uid;
 
   useEffect(() => { if (uid) loadAll(); }, [uid]);
@@ -166,6 +168,11 @@ export default function ProfileScreen() {
               <Text style={styles.avatarBtnText}>AI 重新生成</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity style={styles.inviteBtn} onPress={() => setShowInvite(true)}>
+            <LinearGradient colors={Gradients.starlight} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.inviteBtnGradient}>
+              <Text style={styles.inviteBtnText}>生成邀请卡 ★</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </Animated.View>
 
         <TouchableOpacity style={styles.btLaunchBtn} onPress={() => setShowBreakthrough(true)}>
@@ -207,6 +214,16 @@ export default function ProfileScreen() {
           </View>
         )}
       </ScrollView>
+
+      <InviteCard
+        visible={showInvite}
+        username={profile?.username ?? ''}
+        energyScore={profile?.energyScore ?? 0}
+        avatarColors={avatarColors}
+        avatarUrl={profile?.avatarUrl}
+        userId={uid ?? ''}
+        onClose={() => setShowInvite(false)}
+      />
 
       <Modal visible={showBreakthrough} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modal}>
@@ -261,6 +278,9 @@ const styles = StyleSheet.create({
   avatarBtns: { flexDirection: 'row', gap: 10, marginTop: 4 },
   avatarBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
   avatarBtnText: { color: Colors.textSecondary, fontSize: 13 },
+  inviteBtn: { borderRadius: 20, overflow: 'hidden', marginTop: 4 },
+  inviteBtnGradient: { paddingHorizontal: 24, paddingVertical: 10 },
+  inviteBtnText: { color: '#0A0F1E', fontSize: 14, fontWeight: '600' },
   energyScore: { color: Colors.primary, fontSize: 13 },
   btLaunchBtn: { borderRadius: 20, overflow: 'hidden', marginBottom: 32 },
   btGradient: { padding: 20, alignItems: 'center', gap: 6 },

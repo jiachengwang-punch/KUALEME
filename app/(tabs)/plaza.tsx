@@ -115,7 +115,7 @@ export default function PlazaScreen() {
     await updateDoc(doc(db, 'posts', postId), { likesCount: increment(1) });
     await setDoc(doc(db, 'users', user.uid, 'interactions', postId), { hasLiked: true }, { merge: true });
 
-    // increment friend interaction score
+    // increment friend interaction score + energy for both
     const postAuthorId = posts.find((p) => p.id === postId)?.userId;
     if (postAuthorId && postAuthorId !== user.uid) {
       const friendRef = doc(db, 'users', user.uid, 'friends', postAuthorId);
@@ -123,7 +123,9 @@ export default function PlazaScreen() {
       if (friendSnap.exists()) {
         await updateDoc(friendRef, { interactionScore: increment(1) });
       }
+      await updateDoc(doc(db, 'users', postAuthorId), { energyScore: increment(1) });
     }
+    await updateDoc(doc(db, 'users', user.uid), { energyScore: increment(1) });
 
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, likesCount: (p.likesCount ?? 0) + 1 } : p));
     setLikedPostIds((prev) => new Set([...prev, postId]));
@@ -143,6 +145,12 @@ export default function PlazaScreen() {
       sincerityScore: score, createdAt: serverTimestamp(),
     });
     await setDoc(doc(db, 'users', user.uid, 'interactions', activePost.id), { hasCommented: true }, { merge: true });
+    // energy: +2 for high sincerity (≥85), +1 otherwise
+    const pts = score >= 85 ? 2 : 1;
+    await updateDoc(doc(db, 'users', user.uid), { energyScore: increment(pts) });
+    if (activePost.userId !== user.uid) {
+      await updateDoc(doc(db, 'users', activePost.userId), { energyScore: increment(pts) });
+    }
     setInteractions((prev) => {
       const next = new Map(prev);
       next.set(activePost.id, { liked: prev.get(activePost.id)?.liked ?? false, commented: true });
@@ -214,17 +222,28 @@ export default function PlazaScreen() {
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInDown.delay(index * 60).duration(400)}>
-            {isBlocked(item, index) ? (
-              <View style={blockedCardStyle}>
-                <Text style={blockedTextStyle}>请先为前一条动态点亮并留言，才能继续浏览 TA 的内容 ✦</Text>
-              </View>
-            ) : (
-              <PostCard post={item} initialLiked={likedPostIds.has(item.id)} onLike={handleLike} onOpenComments={(p) => setActivePost(p)} />
-            )}
-          </Animated.View>
-        )}
+        renderItem={({ item, index }) => {
+          const isFeatured = item.featuredUntil && item.featuredUntil.toDate
+            ? item.featuredUntil.toDate() > new Date()
+            : false;
+          return (
+            <Animated.View entering={FadeInDown.delay(index * 60).duration(400)}>
+              {isFeatured && (
+                <View style={styles.featuredBanner}>
+                  <LinearGradient colors={['#FFB347', '#FFCC33']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+                  <Text style={styles.featuredText}>冠军点亮的星 ★</Text>
+                </View>
+              )}
+              {isBlocked(item, index) ? (
+                <View style={blockedCardStyle}>
+                  <Text style={blockedTextStyle}>请先为前一条动态点亮并留言，才能继续浏览 TA 的内容 ✦</Text>
+                </View>
+              ) : (
+                <PostCard post={item} initialLiked={likedPostIds.has(item.id)} onLike={handleLike} onOpenComments={(p) => setActivePost(p)} />
+              )}
+            </Animated.View>
+          );
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -306,4 +325,9 @@ const styles = StyleSheet.create({
   tierBtnText: { color: Colors.textMuted, fontSize: 14 },
   tierBtnTextActive: { color: Colors.primary },
   publishInput: { flex: 1, color: Colors.textPrimary, fontSize: 17, lineHeight: 28, textAlignVertical: 'top' },
+  featuredBanner: {
+    marginHorizontal: 16, marginTop: 8, marginBottom: -4,
+    borderRadius: 12, overflow: 'hidden', paddingHorizontal: 14, paddingVertical: 6,
+  },
+  featuredText: { color: '#0A0F1E', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
 });
