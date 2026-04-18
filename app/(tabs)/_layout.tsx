@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Colors, Gradients } from '../../constants/theme';
 import { useRouter, usePathname } from 'expo-router';
+import { PostsProvider } from '../../lib/PostsContext';
 
 const tabs = [
   { name: 'plaza', label: '广场', icon: '◈' },
@@ -54,15 +55,17 @@ function TabBar() {
 
 export default function TabsLayout() {
   return (
-    <Tabs
-      tabBar={() => <TabBar />}
-      screenOptions={{ headerShown: false }}
-    >
-      <Tabs.Screen name="plaza" />
-      <Tabs.Screen name="friends" />
-      <Tabs.Screen name="champions" />
-      <Tabs.Screen name="profile" />
-    </Tabs>
+    <PostsProvider>
+      <Tabs
+        tabBar={() => <TabBar />}
+        screenOptions={{ headerShown: false }}
+      >
+        <Tabs.Screen name="plaza" />
+        <Tabs.Screen name="friends" />
+        <Tabs.Screen name="champions" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
+    </PostsProvider>
   );
 }
 

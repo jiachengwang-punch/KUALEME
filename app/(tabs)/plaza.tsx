@@ -1,97 +1,44 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, Alert, RefreshControl, SafeAreaView, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { collection, query, orderBy, limit, onSnapshot, getDocs, addDoc, doc, updateDoc, increment, serverTimestamp, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { addDoc, doc, updateDoc, increment, serverTimestamp, getDoc, setDoc, deleteDoc, collection } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
-import { auth, db, Post } from '../../lib/firebase';
+import { auth, db } from '../../lib/firebase';
 import { extractKeywords } from '../../lib/openai';
+import { usePostsContext } from '../../lib/PostsContext';
 import PostCard from '../../components/PostCard';
 import CommentsSheet from '../../components/CommentsSheet';
-import { Colors, Gradients } from '../../constants/theme';
+import { Colors } from '../../constants/theme';
 
-type Notification = { id: string; fromUsername: string; fromUserId: string };
 type Filter = 'all' | 'starlight' | 'glimmer';
 
 export default function PlazaScreen() {
   const router = useRouter();
-  const [allPosts, setAllPosts] = useState<Post[]>([]);
+  const {
+    posts: allPosts, uid, likedPostIds, closeFriendIds, friendIds,
+    interactions, notifications, userProfile,
+    reloadUserData, setLikedPostIds, setInteractions, setNotifications,
+  } = usePostsContext();
+
   const [filter, setFilter] = useState<Filter>('all');
+  const [feedMode, setFeedMode] = useState<'all' | 'friends'>('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [activePost, setActivePost] = useState<Post | null>(null);
+  const [activePost, setActivePost] = useState<any>(null);
   const [showPublish, setShowPublish] = useState(false);
   const [newContent, setNewContent] = useState('');
   const [newTier, setNewTier] = useState<'starlight' | 'glimmer'>('glimmer');
   const [publishing, setPublishing] = useState(false);
-  const [closeFriendIds, setCloseFriendIds] = useState<Set<string>>(new Set());
-  const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
-  const [feedMode, setFeedMode] = useState<'all' | 'friends'>('all');
-  const [interactions, setInteractions] = useState<Map<string, { liked: boolean; commented: boolean }>>(new Map());
-  const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set());
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [userProfile, setUserProfile] = useState<{ username: string } | null>(null);
-  const [uid, setUid] = useState<string | undefined>(undefined);
-  const profileCache = useRef<Map<string, any>>(new Map());
 
   const sourcePosts = feedMode === 'friends' && friendIds.size > 0
     ? allPosts.filter((p) => friendIds.has(p.userId))
     : allPosts;
   const posts = filter === 'all' ? sourcePosts : sourcePosts.filter((p) => p.tier === filter);
 
-  useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(40));
-    const unsub = onSnapshot(q, async (snap) => {
-      const newIds = [...new Set(snap.docs.map((d) => d.data().userId as string))]
-        .filter((id) => !profileCache.current.has(id));
-      await Promise.all(newIds.map(async (id) => {
-        try {
-          const pSnap = await getDoc(doc(db, 'users', id));
-          if (pSnap.exists()) profileCache.current.set(id, { id: pSnap.id, ...pSnap.data() });
-        } catch {}
-      }));
-      setAllPosts(snap.docs.map((d) => ({
-        id: d.id, ...d.data(), profile: profileCache.current.get(d.data().userId),
-      } as Post)));
-    });
-    return unsub;
-  }, []);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      setUid(user?.uid);
-      if (user) loadUserData(user.uid);
-    });
-    return unsub;
-  }, []);
-
-  const loadUserData = async (userId: string) => {
-    const [cfSnap, friendsSnap, intSnap, notifSnap, pSnap] = await Promise.all([
-      getDocs(collection(db, 'users', userId, 'closeFriends')),
-      getDocs(collection(db, 'users', userId, 'friends')),
-      getDocs(collection(db, 'users', userId, 'interactions')),
-      getDocs(collection(db, 'users', userId, 'notifications')),
-      getDoc(doc(db, 'users', userId)),
-    ]);
-
-    setCloseFriendIds(new Set(cfSnap.docs.map((d) => d.id)));
-    setFriendIds(new Set(friendsSnap.docs.map((d) => d.id)));
-
-    const map = new Map<string, { liked: boolean; commented: boolean }>();
-    const liked = new Set<string>();
-    intSnap.docs.forEach((d) => {
-      const data = d.data() as any;
-      map.set(d.id, { liked: !!data.hasLiked, commented: !!data.hasCommented });
-      if (data.hasLiked) liked.add(d.id);
-    });
-    setInteractions(map);
-    setLikedPostIds(liked);
-
-    setNotifications(notifSnap.docs
-      .filter((d) => !d.data().read)
-      .map((d) => ({ id: d.id, fromUsername: d.data().fromUsername ?? '好友', fromUserId: d.data().fromUserId ?? '' })));
-
-    if (pSnap.exists()) setUserProfile({ username: (pSnap.data() as any).username ?? '我' });
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await reloadUserData();
+    setRefreshing(false);
   };
 
   const dismissNotification = async (notifId: string) => {
@@ -100,13 +47,7 @@ export default function PlazaScreen() {
     setNotifications((prev) => prev.filter((n) => n.id !== notifId));
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    if (uid) await loadUserData(uid);
-    setRefreshing(false);
-  };
-
-  const isBlocked = (post: Post, index: number): boolean => {
+  const isBlocked = (post: any, index: number): boolean => {
     if (!closeFriendIds.has(post.userId)) return false;
     const prevPosts = posts.slice(0, index).filter((p) => p.userId === post.userId);
     if (prevPosts.length === 0) return false;
@@ -217,7 +158,6 @@ export default function PlazaScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* feed mode toggle */}
         <View style={styles.feedModeRow}>
           {(['all', 'friends'] as const).map((m) => (
             <TouchableOpacity key={m} style={[styles.feedModeBtn, feedMode === m && styles.feedModeBtnActive]} onPress={() => setFeedMode(m)}>
@@ -228,7 +168,6 @@ export default function PlazaScreen() {
           ))}
         </View>
 
-        {/* filter tabs */}
         <View style={styles.filterRow}>
           {(['all', 'starlight', 'glimmer'] as Filter[]).map((f) => (
             <TouchableOpacity key={f} style={[styles.filterBtn, filter === f && styles.filterBtnActive]} onPress={() => setFilter(f)}>
@@ -376,6 +315,9 @@ const styles = StyleSheet.create({
   notifText: { color: Colors.primary, fontSize: 13, flex: 1 },
   notifDismiss: { color: Colors.textMuted, fontSize: 18, paddingLeft: 12 },
   list: { paddingTop: 4, paddingBottom: 70 },
+  emptyState: { alignItems: 'center', marginTop: 80, gap: 8 },
+  emptyStateText: { color: Colors.textSecondary, fontSize: 16 },
+  emptyStateSubText: { color: Colors.textMuted, fontSize: 13 },
   publishModal: { flex: 1, backgroundColor: '#F8FBFE', padding: 20 },
   publishHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   cancelText: { color: Colors.textMuted, fontSize: 16 },
@@ -387,9 +329,6 @@ const styles = StyleSheet.create({
   tierBtnText: { color: Colors.textMuted, fontSize: 14 },
   tierBtnTextActive: { color: Colors.primary },
   publishInput: { flex: 1, color: Colors.textPrimary, fontSize: 17, lineHeight: 28, textAlignVertical: 'top' },
-  emptyState: { alignItems: 'center', marginTop: 80, gap: 8 },
-  emptyStateText: { color: Colors.textSecondary, fontSize: 16 },
-  emptyStateSubText: { color: Colors.textMuted, fontSize: 13 },
   featuredBanner: {
     marginHorizontal: 16, marginTop: 8, marginBottom: -4,
     borderRadius: 12, overflow: 'hidden', paddingHorizontal: 14, paddingVertical: 6,

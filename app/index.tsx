@@ -49,7 +49,7 @@ export default function SplashScreen() {
     const unsub = onAuthStateChanged(auth, (user) => {
       setTimeout(() => {
         router.replace(user ? '/(tabs)/plaza' : '/(auth)/login');
-      }, 3200);
+      }, 1600);
     });
 
     return unsub;
