@@ -82,6 +82,62 @@ function OrbitRing({ radius, phi, theta, color, zIdx }: {
   );
 }
 
+// Ghost star — orbits along a ring when friends list is empty
+const GHOST_CONFIGS = [
+  { cfgIdx: 0, radius: 88,  theta0: 0.0,        duration: 22000, color: 'rgba(255,172,129,0.5)' },
+  { cfgIdx: 1, radius: 140, theta0: Math.PI * 0.6, duration: 38000, color: 'rgba(174,214,241,0.45)' },
+  { cfgIdx: 2, radius: 110, theta0: Math.PI * 1.3, duration: 28000, color: 'rgba(255,209,148,0.45)' },
+  { cfgIdx: 3, radius: 162, theta0: Math.PI * 0.9, duration: 50000, color: 'rgba(133,193,233,0.40)' },
+];
+
+function GhostStar({ radius, phi, theta, theta0, duration, color }: {
+  radius: number; phi: number; theta: number;
+  theta0: number; duration: number; color: string;
+}) {
+  const angle = useSharedValue(theta0);
+  const glow = useSharedValue(0.4);
+
+  useEffect(() => {
+    angle.value = withRepeat(
+      withTiming(theta0 + Math.PI * 2, { duration, easing: Easing.linear }), -1, false,
+    );
+    glow.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0.3, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1, true,
+    );
+  }, []);
+
+  const dotSize = 12;
+  const style = useAnimatedStyle(() => {
+    const t = angle.value;
+    const sx = radius * Math.cos(phi) * Math.cos(t) - radius * Math.sin(phi) * Math.cos(theta) * Math.sin(t);
+    const sy = radius * Math.sin(phi) * Math.cos(t) + radius * Math.cos(phi) * Math.cos(theta) * Math.sin(t);
+    const sz = radius * Math.sin(theta) * Math.sin(t);
+    const depthT = (sz / (radius * Math.abs(Math.sin(theta)) + 1) + 1) / 2;
+    const s = (0.65 + depthT * 0.35) * glow.value * 1.2 + 0.3;
+    return {
+      position: 'absolute',
+      left: CX - dotSize / 2,
+      top: CY - dotSize / 2,
+      width: dotSize, height: dotSize, borderRadius: dotSize,
+      transform: [{ translateX: sx }, { translateY: sy }, { scale: s }],
+      backgroundColor: color,
+      opacity: 0.35 + depthT * 0.5,
+      zIndex: Math.round(10 + sz * 0.5),
+      shadowColor: color,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.9,
+      shadowRadius: 6,
+      elevation: 4,
+    };
+  });
+
+  return <Animated.View style={style} pointerEvents="none" />;
+}
+
 type Friend = {
   addressee_id: string;
   profiles?: { username: string; avatar_colors?: string[]; avatar_url?: string };
@@ -196,8 +252,8 @@ function Star3D({ friend, p, maxScore }: { friend: Friend; p: StarParams; maxSco
 export default function StarGalaxy({ friends, closeFriends, interactionScores = {} }: Props) {
   const closeIds = new Set(closeFriends.map((cf) => cf.friend_id));
   const maxScore = Math.max(1, ...Object.values(interactionScores));
+  const isEmpty = friends.length === 0;
 
-  // Limit display and sort: close friends first, then by score
   const sorted = [...friends].sort((a, b) => {
     const aClose = closeIds.has(a.addressee_id) ? 1 : 0;
     const bClose = closeIds.has(b.addressee_id) ? 1 : 0;
@@ -211,10 +267,9 @@ export default function StarGalaxy({ friends, closeFriends, interactionScores = 
     const norm = maxScore > 0 ? score / maxScore : 0;
     const cfg = ORBIT_CONFIGS[i % ORBIT_CONFIGS.length];
     const radius = isClose ? 82 + (1 - norm) * 22 : 134 + (1 - norm) * 36;
-    // Kepler-like: inner orbits faster
     const duration = Math.round(18000 + Math.pow(radius / 170, 1.4) * 36000);
     const theta0 = (i / Math.max(sorted.length, 1)) * Math.PI * 2;
-    const orbitZIndex = 20 + i * 3; // each orbit sits on its own z layer
+    const orbitZIndex = 20 + i * 3;
 
     return {
       radius, phi: cfg.phi, theta: cfg.theta,
@@ -224,40 +279,50 @@ export default function StarGalaxy({ friends, closeFriends, interactionScores = 
     };
   });
 
+  // Ghost orbit rings shown when no friends
+  const ghostRings = GHOST_CONFIGS.map((g) => ({
+    radius: g.radius,
+    phi: ORBIT_CONFIGS[g.cfgIdx].phi,
+    theta: ORBIT_CONFIGS[g.cfgIdx].theta,
+    color: g.color,
+    zIdx: 10 + g.cfgIdx * 3,
+  }));
+
   return (
     <View style={styles.container}>
-      {/* Ambient twinkling stars */}
       {AMBIENT.map((s, i) => <AmbientDot key={i} {...s} />)}
 
-      {/* Orbit rings — behind center (zIndex < 50) */}
-      {starParams.map((p, i) => (
-        <OrbitRing
-          key={i}
-          radius={p.radius}
-          phi={p.phi}
-          theta={p.theta}
-          color={p.orbitColor}
-          zIdx={p.orbitZIndex}
-        />
-      ))}
+      {/* Orbit rings: real when friends exist, ghost rings when empty */}
+      {isEmpty
+        ? ghostRings.map((r, i) => <OrbitRing key={i} radius={r.radius} phi={r.phi} theta={r.theta} color={r.color} zIdx={r.zIdx} />)
+        : starParams.map((p, i) => <OrbitRing key={i} radius={p.radius} phi={p.phi} theta={p.theta} color={p.orbitColor} zIdx={p.orbitZIndex} />)
+      }
 
-      {/* Center user — always on top of rings, behind front stars */}
+      {/* Center user */}
       <View style={[styles.center, { left: CX - 36, top: CY - 36, zIndex: 500 }]}>
         <AvatarView size={72} borderWidth={2.5} borderColor={Colors.primary} />
       </View>
 
-      {/* Friend stars */}
-      {sorted.map((f, i) => (
-        <Star3D
-          key={f.addressee_id}
-          friend={f}
-          p={starParams[i]}
-          maxScore={maxScore}
+      {/* Ghost stars when no friends */}
+      {isEmpty && GHOST_CONFIGS.map((g, i) => (
+        <GhostStar
+          key={i}
+          radius={g.radius}
+          phi={ORBIT_CONFIGS[g.cfgIdx].phi}
+          theta={ORBIT_CONFIGS[g.cfgIdx].theta}
+          theta0={g.theta0}
+          duration={g.duration}
+          color={g.color}
         />
       ))}
 
-      {friends.length === 0 && (
-        <View style={[styles.empty, { left: CX - 90, top: CY + 90 }]}>
+      {/* Friend stars */}
+      {sorted.map((f, i) => (
+        <Star3D key={f.addressee_id} friend={f} p={starParams[i]} maxScore={maxScore} />
+      ))}
+
+      {isEmpty && (
+        <View style={[styles.empty, { left: CX - 90, top: CY + 110 }]}>
           <Text style={styles.emptyText}>还没有星辰，去加友吧</Text>
         </View>
       )}
