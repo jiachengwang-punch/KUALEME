@@ -22,7 +22,7 @@ export default function PostCard({ post, initialLiked = false, onLike, onOpenCom
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [isRevealed, setIsRevealed] = useState(initialLiked);
   const scale = useSharedValue(1);
-  const glowOpacity = useSharedValue(initialLiked ? 0.18 : 0);
+  const glowOpacity = useSharedValue(initialLiked ? 0.12 : 0);
 
   const cardStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const glowStyle = useAnimatedStyle(() => ({ opacity: glowOpacity.value }));
@@ -31,7 +31,7 @@ export default function PostCard({ post, initialLiked = false, onLike, onOpenCom
     HapticPatterns.like();
     Sounds.like();
     scale.value = withSequence(withSpring(1.04, { damping: 4 }), withSpring(1, { damping: 7 }));
-    glowOpacity.value = withSequence(withTiming(1, { duration: 200 }), withTiming(0.18, { duration: 900 }));
+    glowOpacity.value = withSequence(withTiming(1, { duration: 200 }), withTiming(0.12, { duration: 900 }));
     setIsLiked(true);
     setIsRevealed(true);
     onLike(post.id);
@@ -55,7 +55,7 @@ export default function PostCard({ post, initialLiked = false, onLike, onOpenCom
       </Animated.View>
 
       <TouchableOpacity activeOpacity={0.92} onLongPress={handleLongPress} delayLongPress={700} style={[styles.card, isLiked && styles.cardLiked]}>
-        <BlurView intensity={Layout.blur} tint="dark" style={styles.blur}>
+        <BlurView intensity={Layout.blur} tint="light" style={styles.blur}>
           <View style={styles.inner}>
             <View style={styles.header}>
               <AvatarView url={avatarUrl} colors={avatarColors} size={42} />
@@ -139,8 +139,8 @@ const styles = StyleSheet.create({
   lockHint: { fontSize: 13, color: Colors.textMuted, letterSpacing: 1 },
   keywords: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
   keyword: {
-    backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: Colors.borderLight,
+    backgroundColor: 'rgba(52,73,94,0.05)', borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(52,73,94,0.1)',
   },
   keywordText: { color: Colors.textBody, fontSize: 13 },
   revealed: { gap: 14 },
@@ -148,9 +148,9 @@ const styles = StyleSheet.create({
   footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   likes: { ...Typography.caption, color: Colors.textSecondary },
   commentBtn: {
-    backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 999,
+    backgroundColor: 'rgba(52,73,94,0.05)', borderRadius: 999,
     paddingHorizontal: 16, paddingVertical: 7,
-    borderWidth: 1, borderColor: Colors.border,
+    borderWidth: 1, borderColor: 'rgba(52,73,94,0.1)',
   },
   commentBtnText: { color: Colors.textBody, fontSize: 13 },
 });

@@ -176,11 +176,11 @@ export default function StarGalaxy({ friends, closeFriends, interactionScores = 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'transparent' },
   glow: { position: 'absolute', width: 320, height: 320, borderRadius: 160 },
-  dot:  { position: 'absolute', backgroundColor: '#fff' },
+  dot:  { position: 'absolute', backgroundColor: 'rgba(52,73,94,0.2)' },
   ring: {
     position: 'absolute', borderWidth: 1,
     borderRadius: 999,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(52,73,94,0.06)',
   },
   center: { position: 'absolute' },
   label: { color: Colors.textMuted, fontSize: 10, textAlign: 'center', marginTop: 3, maxWidth: 50 },

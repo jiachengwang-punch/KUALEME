@@ -100,7 +100,7 @@ export default function ChampionsScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0A0F1E', '#161B2D']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#E1F0F7', '#F8FBFE', '#FFF5ED']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView>
         <View style={styles.header}>
           <Text style={styles.title}>冠军</Text>
@@ -138,7 +138,7 @@ export default function ChampionsScreen() {
 
           {canPassTorch && (
             <Animated.View entering={FadeInDown.duration(500)} style={styles.torchCard}>
-              <LinearGradient colors={['rgba(255,179,71,0.12)', 'rgba(255,126,95,0.08)']} style={StyleSheet.absoluteFill} />
+              <LinearGradient colors={['rgba(255,209,148,0.15)', 'rgba(255,172,129,0.08)']} style={StyleSheet.absoluteFill} />
               <Text style={styles.torchCardTitle}>你是今日冠军 ★</Text>
               <Text style={styles.torchCardDesc}>点击"传递火把"，将一条冷门微光动态置顶广场 15 分钟</Text>
             </Animated.View>
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   tabBtnTextActive: { color: Colors.primary, fontWeight: '500' },
   subtitle: { color: Colors.textMuted, fontSize: 12, textAlign: 'center', letterSpacing: 1, marginBottom: 16 },
   scroll: { paddingHorizontal: 20, paddingBottom: 70, paddingTop: 8 },
-  torchCard: { borderRadius: 20, padding: 20, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,179,71,0.3)', gap: 8 },
+  torchCard: { borderRadius: 20, padding: 20, marginBottom: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,172,129,0.3)', gap: 8 },
   torchCardTitle: { color: Colors.primary, fontSize: 16, fontWeight: '600' },
   torchCardDesc: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20 },
   empty: { alignItems: 'center', marginTop: 80, gap: 8 },

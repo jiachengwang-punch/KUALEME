@@ -58,14 +58,14 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#050D14', '#0A1E2E', '#0D2B3E']}
+        colors={['#E1F0F7', '#F8FBFE', '#FFF5ED']}
         style={StyleSheet.absoluteFill}
       />
 
       {/* 流光扫过效果 */}
       <Animated.View style={[styles.shimmerBar, shimmerStyle]} pointerEvents="none">
         <LinearGradient
-          colors={['transparent', 'rgba(126,200,227,0.08)', 'transparent']}
+          colors={['transparent', 'rgba(255,172,129,0.1)', 'transparent']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
           style={StyleSheet.absoluteFill}
         />
@@ -87,14 +87,14 @@ export default function SplashScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#050D14' },
+  container: { flex: 1, backgroundColor: '#F8FBFE' },
   shimmerBar: {
     position: 'absolute', top: 0, bottom: 0, width: 120,
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40, gap: 12 },
   line: {
     fontSize: 20,
-    color: '#F0F8FF',
+    color: '#34495E',
     textAlign: 'center',
     lineHeight: 34,
     letterSpacing: 1,

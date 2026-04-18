@@ -18,7 +18,7 @@ export default function Root({ children }: { children: React.ReactNode }) {
               box-sizing: border-box;
             }
             body {
-              background: linear-gradient(160deg, #0A0F1E 0%, #161B2D 100%);
+              background: linear-gradient(45deg, #E1F0F7 0%, #F8FBFE 50%, #FFF5ED 100%);
               min-height: 100vh;
             }
             ::-webkit-scrollbar { display: none; }

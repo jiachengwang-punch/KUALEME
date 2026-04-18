@@ -18,9 +18,9 @@ function TabBar() {
 
   return (
     <View style={styles.container}>
-      <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+      <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFill} />
       <LinearGradient
-        colors={['rgba(10,15,30,0)', 'rgba(10,15,30,0.95)']}
+        colors={['rgba(248,251,254,0)', 'rgba(248,251,254,0.95)']}
         style={styles.gradient}
         pointerEvents="none"
       />
@@ -67,13 +67,13 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  container: { borderTopWidth: 1, borderTopColor: Colors.border },
+  container: { shadowColor: '#D1E1E9', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.2, shadowRadius: 10, borderTopWidth: 0 },
   gradient: { position: 'absolute', top: -24, left: 0, right: 0, height: 24 },
   tabBar: {
     flexDirection: 'row',
     paddingBottom: 10,
     paddingTop: 5,
-    backgroundColor: 'rgba(10,15,30,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
   },
   tab: { flex: 1, alignItems: 'center', gap: 2 },
   iconWrap: {
@@ -82,8 +82,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   iconWrapActive: {},
-  tabIcon: { fontSize: 13, color: 'rgba(255,255,255,0.35)' },
-  tabIconActive: { color: '#fff' },
-  tabLabel: { fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: 0.5 },
-  tabLabelActive: { color: Colors.primary, fontWeight: '500' },
+  tabIcon: { fontSize: 13, color: '#BFC9CA' },
+  tabIconActive: { color: '#FF8C69' },
+  tabLabel: { fontSize: 10, color: '#BFC9CA', letterSpacing: 0.5 },
+  tabLabelActive: { color: '#FF8C69', fontWeight: '500' },
 });

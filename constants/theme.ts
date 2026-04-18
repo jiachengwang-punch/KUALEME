@@ -1,41 +1,43 @@
 export const Colors = {
-  bg: '#0A0F1E',
-  bgEnd: '#161B2D',
-  surface: 'rgba(255,255,255,0.05)',
-  border: 'rgba(255,255,255,0.10)',
-  borderLight: 'rgba(255,255,255,0.06)',
-  primary: '#FFB347',
-  primaryAlt: '#FF7E5F',
-  secondary: '#70A1FF',
-  gold: '#FFCC33',
-  textPrimary: '#FFFFFF',
-  textBody: 'rgba(255,255,255,0.9)',
-  textSecondary: 'rgba(255,255,255,0.5)',
-  textMuted: 'rgba(255,255,255,0.35)',
+  bg: '#F8FBFE',
+  bgEnd: '#FFF5ED',
+  surface: 'rgba(255,255,255,0.6)',
+  border: 'rgba(255,255,255,0.8)',
+  borderLight: 'rgba(255,255,255,0.6)',
+  primary: '#FFAC81',
+  primaryAlt: '#FFD194',
+  secondary: '#AED6F1',
+  gold: '#FFD194',
+  textPrimary: '#34495E',
+  textBody: '#5D6D7E',
+  textSecondary: '#7F8C8D',
+  textMuted: '#ABB2B9',
+  tabActive: '#FF8C69',
+  tabInactive: '#BFC9CA',
 };
 
 export const Gradients = {
-  starlight: ['#FFB347', '#FF7E5F'] as const,
-  glimmer: ['#70A1FF', '#7ECEF4'] as const,
-  splash: ['#060A14', '#0A0F1E', '#161B2D'] as const,
-  publishBtn: ['#FFB347', '#FFCC33'] as const,
-  bg: ['#0A0F1E', '#161B2D'] as const,
+  starlight: ['#FFD194', '#FFAC81'] as const,
+  glimmer: ['#AED6F1', '#85C1E9'] as const,
+  splash: ['#E1F0F7', '#F8FBFE', '#FFF5ED'] as const,
+  publishBtn: ['#FFD194', '#FFAC81'] as const,
+  bg: ['#E1F0F7', '#F8FBFE', '#FFF5ED'] as const,
 };
 
 export const Layout = {
   cardRadius: 20,
   cardMarginH: 16,
-  cardMarginV: 12,
+  cardMarginV: 16,
   blur: 20,
 };
 
 export const Shadow = {
   card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowColor: '#D1E1E9',
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 30,
-    elevation: 12,
+    shadowRadius: 20,
+    elevation: 8,
   },
 };
 

@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
   logo: { fontSize: 40, color: Colors.textPrimary, textAlign: 'center', fontWeight: '300', letterSpacing: 6 },
   subtitle: { fontSize: 14, color: Colors.textMuted, textAlign: 'center', marginTop: 8, letterSpacing: 2 },
   form: { marginTop: 48, gap: 14 },
-  input: { backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16, color: Colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: Colors.border },
+  input: { backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 16, paddingHorizontal: 20, paddingVertical: 16, color: Colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: 'rgba(52,73,94,0.1)' },
   errorBox: { backgroundColor: 'rgba(239,68,68,0.12)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(239,68,68,0.3)' },
   errorText: { color: '#F87171', fontSize: 14, textAlign: 'center' },
   btn: { borderRadius: 16, overflow: 'hidden', marginTop: 8 },

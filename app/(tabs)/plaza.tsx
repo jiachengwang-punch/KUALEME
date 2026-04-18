@@ -197,7 +197,7 @@ export default function PlazaScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0A0F1E', '#161B2D']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#E1F0F7', '#F8FBFE', '#FFF5ED']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>广场</Text>
@@ -295,8 +295,8 @@ export default function PlazaScreen() {
 }
 
 const blockedCardStyle: any = {
-  marginHorizontal: 16, marginVertical: 8, backgroundColor: 'rgba(255,179,71,0.06)',
-  borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(255,179,71,0.15)', alignItems: 'center',
+  marginHorizontal: 16, marginVertical: 8, backgroundColor: 'rgba(255,172,129,0.08)',
+  borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(255,172,129,0.25)', alignItems: 'center',
 };
 const blockedTextStyle: any = { color: Colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20 };
 
@@ -309,14 +309,14 @@ const styles = StyleSheet.create({
   publishBtnText: { color: '#fff', fontSize: 14, fontWeight: '500' },
   notifBanner: {
     marginHorizontal: 16, marginBottom: 4, paddingHorizontal: 16, paddingVertical: 10,
-    backgroundColor: 'rgba(255,179,71,0.12)', borderRadius: 14,
-    borderWidth: 1, borderColor: 'rgba(255,179,71,0.3)',
+    backgroundColor: 'rgba(255,172,129,0.12)', borderRadius: 14,
+    borderWidth: 1, borderColor: 'rgba(255,172,129,0.3)',
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   notifText: { color: Colors.primary, fontSize: 13, flex: 1 },
   notifDismiss: { color: Colors.textMuted, fontSize: 18, paddingLeft: 12 },
   list: { paddingTop: 4, paddingBottom: 70 },
-  publishModal: { flex: 1, backgroundColor: '#0A0F1E', padding: 20 },
+  publishModal: { flex: 1, backgroundColor: '#F8FBFE', padding: 20 },
   publishHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   cancelText: { color: Colors.textMuted, fontSize: 16 },
   publishTitle: { color: Colors.textPrimary, fontSize: 17, fontWeight: '500' },

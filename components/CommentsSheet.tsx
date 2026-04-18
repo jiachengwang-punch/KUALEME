@@ -94,7 +94,7 @@ export default function CommentsSheet({ visible, postId, postContent, onClose, o
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.backdrop}>
-        <BlurView intensity={20} tint="dark" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={20} tint="light" style={StyleSheet.absoluteFill} />
         <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} />
 
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.kvWrapper}>
@@ -180,12 +180,12 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end' },
   kvWrapper: { justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#1E0F10', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.97)', borderTopLeftRadius: 28, borderTopRightRadius: 28,
     padding: 20, paddingBottom: 36, maxHeight: '80%',
-    borderTopWidth: 1, borderColor: Colors.border,
+    borderTopWidth: 1, borderColor: 'rgba(52,73,94,0.1)',
   },
-  handle: { width: 36, height: 4, backgroundColor: Colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-  postPreview: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 12, marginBottom: 14 },
+  handle: { width: 36, height: 4, backgroundColor: 'rgba(52,73,94,0.12)', borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  postPreview: { backgroundColor: 'rgba(52,73,94,0.05)', borderRadius: 14, padding: 12, marginBottom: 14 },
   postPreviewText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 20 },
   sectionLabel: { color: Colors.textMuted, fontSize: 12, letterSpacing: 1, marginBottom: 12 },
   commentList: { maxHeight: 280 },

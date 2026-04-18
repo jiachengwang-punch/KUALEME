@@ -181,7 +181,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#0A0F1E', '#161B2D']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#E1F0F7', '#F8FBFE', '#FFF5ED']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <SafeAreaView>
         <View style={styles.header}>
           <Text style={styles.title}>我</Text>
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   avatarBtnText: { color: Colors.textSecondary, fontSize: 13 },
   inviteBtn: { borderRadius: 20, overflow: 'hidden', marginTop: 4 },
   inviteBtnGradient: { paddingHorizontal: 24, paddingVertical: 10 },
-  inviteBtnText: { color: '#0A0F1E', fontSize: 14, fontWeight: '600' },
+  inviteBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   energyScore: { color: Colors.primary, fontSize: 13 },
   btLaunchBtn: { borderRadius: 20, overflow: 'hidden', marginBottom: 32 },
   btGradient: { padding: 20, alignItems: 'center', gap: 6 },
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   section: { marginBottom: 24 },
   sectionTitle: { color: Colors.textSecondary, fontSize: 13, letterSpacing: 1, marginBottom: 12 },
   btCard: { backgroundColor: Colors.surface, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: Colors.border, gap: 8 },
-  btSent: { borderColor: 'rgba(255,179,71,0.2)' },
+  btSent: { borderColor: 'rgba(255,172,129,0.2)' },
   btFrom: { color: Colors.textMuted, fontSize: 12 },
   btContent: { color: Colors.textPrimary, fontSize: 15, lineHeight: 22 },
   likeBtn: { borderRadius: 12, overflow: 'hidden', alignSelf: 'flex-start' },
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   likedTag: { color: Colors.primary, fontSize: 13 },
   btStatus: { color: Colors.textMuted, fontSize: 12 },
   btStatusLiked: { color: Colors.primary },
-  modal: { flex: 1, backgroundColor: '#0A0F1E' },
+  modal: { flex: 1, backgroundColor: 'rgba(255,255,255,0.97)' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: Colors.border },
   cancelText: { color: Colors.textMuted, fontSize: 16 },
   modalTitle: { color: Colors.textPrimary, fontSize: 17, fontWeight: '500' },
@@ -346,9 +346,9 @@ const styles = StyleSheet.create({
   targetRowSelected: { borderWidth: 1, borderColor: Colors.primary },
   targetName: { color: Colors.textPrimary, fontSize: 15 },
   selectedMark: { color: Colors.primary, fontSize: 16 },
-  polishBtn: { backgroundColor: 'rgba(255,179,71,0.12)', borderRadius: 20, paddingVertical: 14, alignItems: 'center', marginTop: 8, borderWidth: 1, borderColor: 'rgba(255,179,71,0.35)' },
+  polishBtn: { backgroundColor: 'rgba(255,172,129,0.12)', borderRadius: 20, paddingVertical: 14, alignItems: 'center', marginTop: 8, borderWidth: 1, borderColor: 'rgba(255,172,129,0.35)' },
   polishBtnText: { color: Colors.primary, fontSize: 15, fontWeight: '500' },
-  polishedBox: { backgroundColor: Colors.surface, borderRadius: 16, padding: 16, marginTop: 16, borderWidth: 1, borderColor: 'rgba(255,179,71,0.25)', gap: 10 },
+  polishedBox: { backgroundColor: Colors.surface, borderRadius: 16, padding: 16, marginTop: 16, borderWidth: 1, borderColor: 'rgba(255,172,129,0.25)', gap: 10 },
   polishedLabel: { color: Colors.primary, fontSize: 12, letterSpacing: 1 },
   polishedText: { color: Colors.textPrimary, fontSize: 16, lineHeight: 26 },
 });
