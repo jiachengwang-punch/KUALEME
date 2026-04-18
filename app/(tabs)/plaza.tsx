@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { addDoc, doc, updateDoc, increment, serverTimestamp, getDoc, setDoc, deleteDoc, collection } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
-import { auth, db } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
 import { extractKeywords } from '../../lib/openai';
 import { usePostsContext } from '../../lib/PostsContext';
 import PostCard from '../../components/PostCard';
@@ -58,24 +58,23 @@ export default function PlazaScreen() {
   };
 
   const handleLike = async (postId: string) => {
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!uid) return;
     if (likedPostIds.has(postId)) return;
-    const likeRef = doc(db, 'likes', `${user.uid}_${postId}`);
+    const likeRef = doc(db, 'likes', `${uid}_${postId}`);
     const existing = await getDoc(likeRef);
     if (existing.exists()) return;
-    await setDoc(likeRef, { userId: user.uid, postId, createdAt: serverTimestamp() });
+    await setDoc(likeRef, { userId: uid, postId, createdAt: serverTimestamp() });
     await updateDoc(doc(db, 'posts', postId), { likesCount: increment(1) });
-    await setDoc(doc(db, 'users', user.uid, 'interactions', postId), { hasLiked: true }, { merge: true });
+    await setDoc(doc(db, 'users', uid, 'interactions', postId), { hasLiked: true }, { merge: true });
 
     const postAuthorId = allPosts.find((p) => p.id === postId)?.userId;
-    if (postAuthorId && postAuthorId !== user.uid) {
-      const friendRef = doc(db, 'users', user.uid, 'friends', postAuthorId);
+    if (postAuthorId && postAuthorId !== uid) {
+      const friendRef = doc(db, 'users', uid, 'friends', postAuthorId);
       const friendSnap = await getDoc(friendRef);
       if (friendSnap.exists()) await updateDoc(friendRef, { interactionScore: increment(1) });
       await updateDoc(doc(db, 'users', postAuthorId), { energyScore: increment(1) });
     }
-    await updateDoc(doc(db, 'users', user.uid), { energyScore: increment(1) });
+    await updateDoc(doc(db, 'users', uid), { energyScore: increment(1) });
 
     setLikedPostIds((prev) => new Set([...prev, postId]));
     setInteractions((prev) => {
@@ -86,18 +85,16 @@ export default function PlazaScreen() {
   };
 
   const handleComment = async (text: string, score: number, replyTo?: { id: string; username: string }) => {
-    if (!activePost) return;
-    const user = auth.currentUser;
-    if (!user) return;
+    if (!activePost || !uid) return;
     await addDoc(collection(db, 'comments'), {
-      postId: activePost.id, userId: user.uid, content: text,
+      postId: activePost.id, userId: uid, content: text,
       sincerityScore: score, createdAt: serverTimestamp(),
       ...(replyTo ? { replyToId: replyTo.id, replyToUsername: replyTo.username } : {}),
     });
-    await setDoc(doc(db, 'users', user.uid, 'interactions', activePost.id), { hasCommented: true }, { merge: true });
+    await setDoc(doc(db, 'users', uid, 'interactions', activePost.id), { hasCommented: true }, { merge: true });
     const pts = score >= 85 ? 2 : 1;
-    await updateDoc(doc(db, 'users', user.uid), { energyScore: increment(pts) });
-    if (activePost.userId !== user.uid) {
+    await updateDoc(doc(db, 'users', uid), { energyScore: increment(pts) });
+    if (activePost.userId !== uid) {
       await updateDoc(doc(db, 'users', activePost.userId), { energyScore: increment(pts) });
     }
     setInteractions((prev) => {
@@ -116,22 +113,20 @@ export default function PlazaScreen() {
   };
 
   const handlePublish = async () => {
-    if (!newContent.trim()) return;
+    if (!newContent.trim() || !uid) return;
     setPublishing(true);
     try {
-      const user = auth.currentUser;
-      if (!user) return;
       let keywords: string[] = [];
       try { keywords = await extractKeywords(newContent); } catch {}
       const postRef = await addDoc(collection(db, 'posts'), {
-        userId: user.uid, content: newContent, tier: newTier,
+        userId: uid, content: newContent, tier: newTier,
         keywords, likesCount: 0, createdAt: serverTimestamp(),
       });
       const fromUsername = userProfile?.username ?? '好友';
       for (const friendId of closeFriendIds) {
         try {
           await setDoc(doc(db, 'users', friendId, 'notifications', postRef.id), {
-            fromUserId: user.uid, fromUsername, postId: postRef.id,
+            fromUserId: uid, fromUsername, postId: postRef.id,
             read: false, createdAt: serverTimestamp(),
           });
         } catch {}
