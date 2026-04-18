@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   evalGradient: { paddingHorizontal: 16, paddingVertical: 9 },
   evalText: { color: '#fff', fontSize: 13, fontWeight: '500' },
   subtitle: { color: Colors.textMuted, fontSize: 12, textAlign: 'center', letterSpacing: 1, marginBottom: 16 },
-  scroll: { paddingHorizontal: 20, paddingBottom: 100, paddingTop: 8 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 70, paddingTop: 8 },
   torchCard: {
     borderRadius: 20, padding: 20, marginBottom: 24, overflow: 'hidden',
     borderWidth: 1, borderColor: 'rgba(255,179,71,0.3)', gap: 8,

@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   },
   notifText: { color: Colors.primary, fontSize: 13, flex: 1 },
   notifDismiss: { color: Colors.textMuted, fontSize: 18, paddingLeft: 12 },
-  list: { paddingTop: 4, paddingBottom: 120 },
+  list: { paddingTop: 4, paddingBottom: 70 },
   publishModal: { flex: 1, backgroundColor: '#0A0F1E', padding: 20 },
   publishHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   cancelText: { color: Colors.textMuted, fontSize: 16 },

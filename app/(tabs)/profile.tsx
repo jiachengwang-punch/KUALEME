@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, SafeAreaView, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, SafeAreaView, Alert, Modal, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
@@ -74,11 +74,13 @@ export default function ProfileScreen() {
 
   const pickAndUploadAvatar = async () => {
     if (!uid) return;
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) { Alert.alert('需要相册权限'); return; }
+    if (Platform.OS !== 'web') {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) { Alert.alert('需要相册权限'); return; }
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
+      allowsEditing: Platform.OS !== 'web',
       aspect: [1, 1],
       quality: 0.5,
       base64: true,
@@ -272,7 +274,7 @@ const styles = StyleSheet.create({
   title: { color: Colors.textPrimary, fontSize: 24, fontWeight: '600', letterSpacing: 1 },
   signOutBtn: { padding: 8 },
   signOutText: { color: Colors.textMuted, fontSize: 14 },
-  scroll: { paddingHorizontal: 20, paddingBottom: 100 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 70 },
   avatarSection: { alignItems: 'center', paddingVertical: 32, gap: 12 },
   username: { color: Colors.textPrimary, fontSize: 22, fontWeight: '500', letterSpacing: 1 },
   avatarBtns: { flexDirection: 'row', gap: 10, marginTop: 4 },

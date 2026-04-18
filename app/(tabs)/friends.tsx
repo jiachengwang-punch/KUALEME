@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   toggleActive: { backgroundColor: 'rgba(255,179,71,0.15)', borderColor: Colors.primary },
   toggleText: { color: Colors.textMuted, fontSize: 13 },
   toggleTextActive: { color: Colors.primary },
-  list: { paddingBottom: 100 },
+  list: { paddingBottom: 70 },
   listHeader: { paddingHorizontal: 20 },
   section: { marginBottom: 24 },
   sectionTitle: { color: Colors.textSecondary, fontSize: 13, letterSpacing: 1, marginBottom: 12, marginTop: 8 },
