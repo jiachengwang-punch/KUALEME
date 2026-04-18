@@ -6,8 +6,9 @@ import { collection, doc, getDocs, setDoc, updateDoc, query, where, getDoc, dele
 import { auth, db, UserProfile } from '../../lib/firebase';
 import { Colors, Gradients } from '../../constants/theme';
 import StarGalaxy from '../../components/StarGalaxy';
+import AvatarView from '../../components/AvatarView';
 
-type FriendEntry = { id: string; profile: UserProfile };
+type FriendEntry = { id: string; profile: UserProfile; interactionScore?: number };
 type Request = { id: string; requesterId: string; profile: UserProfile };
 
 export default function FriendsScreen() {
@@ -27,7 +28,11 @@ export default function FriendsScreen() {
     const list: FriendEntry[] = [];
     for (const d of snap.docs) {
       const pSnap = await getDoc(doc(db, 'users', d.id));
-      if (pSnap.exists()) list.push({ id: d.id, profile: { id: pSnap.id, ...pSnap.data() } as UserProfile });
+      if (pSnap.exists()) list.push({
+        id: d.id,
+        profile: { id: pSnap.id, ...pSnap.data() } as UserProfile,
+        interactionScore: (d.data() as any).interactionScore ?? 0,
+      });
     }
     setFriends(list);
   };
@@ -91,7 +96,9 @@ export default function FriendsScreen() {
     }
   };
 
-  const galaxyFriends = friends.map((f) => ({ addressee_id: f.id, profiles: { username: f.profile.username, avatar_colors: f.profile.avatarColors } }));
+  const interactionScores: Record<string, number> = {};
+  friends.forEach((f) => { interactionScores[f.id] = f.interactionScore ?? 0; });
+  const galaxyFriends = friends.map((f) => ({ addressee_id: f.id, profiles: { username: f.profile.username, avatar_colors: f.profile.avatarColors, avatar_url: f.profile.avatarUrl } }));
   const galaxyClose = [...closeFriendIds].map((id) => ({ friend_id: id, last_interaction: '', profiles: undefined }));
 
   return (
@@ -111,7 +118,7 @@ export default function FriendsScreen() {
       </SafeAreaView>
 
       {view === 'galaxy' ? (
-        <StarGalaxy friends={galaxyFriends} closeFriends={galaxyClose} />
+        <StarGalaxy friends={galaxyFriends} closeFriends={galaxyClose} interactionScores={interactionScores} />
       ) : (
         <FlatList
           data={friends}
@@ -123,7 +130,7 @@ export default function FriendsScreen() {
                   <Text style={styles.sectionTitle}>待接受 ({requests.length})</Text>
                   {requests.map((req) => (
                     <View key={req.id} style={styles.row}>
-                      <AvatarCircle colors={req.profile.avatarColors} size={40} />
+                      <AvatarCircle colors={req.profile.avatarColors} url={req.profile.avatarUrl} size={40} />
                       <Text style={styles.username}>{req.profile.username}</Text>
                       <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptRequest(req.requesterId)}>
                         <Text style={styles.acceptBtnText}>接受</Text>
@@ -138,7 +145,7 @@ export default function FriendsScreen() {
                   value={searchQuery} onChangeText={(t) => { setSearchQuery(t); searchUsers(t); }} />
                 {searchResults.map((u) => (
                   <View key={u.id} style={styles.row}>
-                    <AvatarCircle colors={u.avatarColors} size={40} />
+                    <AvatarCircle colors={u.avatarColors} url={u.avatarUrl} size={40} />
                     <Text style={styles.username}>{u.username}</Text>
                     <TouchableOpacity style={styles.addBtn} onPress={() => sendRequest(u.id)}>
                       <Text style={styles.addBtnText}>+ 加友</Text>
@@ -151,7 +158,7 @@ export default function FriendsScreen() {
           }
           renderItem={({ item, index }) => (
             <Animated.View entering={FadeInDown.delay(index * 50)} style={styles.friendRow}>
-              <AvatarCircle colors={item.profile.avatarColors} size={44} />
+              <AvatarCircle colors={item.profile.avatarColors} url={item.profile.avatarUrl} size={44} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.username}>{item.profile.username}</Text>
                 {closeFriendIds.has(item.id) && <Text style={styles.coreTag}>核心圈 ✦</Text>}
@@ -169,13 +176,8 @@ export default function FriendsScreen() {
   );
 }
 
-function AvatarCircle({ colors, size }: { colors?: string[]; size: number }) {
-  const c = (colors ?? ['#7C3AED', '#EC4899', '#F59E0B']) as [string, string, string];
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }}>
-      <LinearGradient colors={c} style={StyleSheet.absoluteFill} />
-    </View>
-  );
+function AvatarCircle({ colors, url, size }: { colors?: string[]; url?: string; size: number }) {
+  return <AvatarView url={url} colors={colors} size={size} />;
 }
 
 const styles = StyleSheet.create({

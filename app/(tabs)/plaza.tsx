@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, Alert, RefreshControl, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, Alert, RefreshControl, SafeAreaView, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { collection, query, orderBy, limit, getDocs, addDoc, doc, updateDoc, increment, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db, Post } from '../../lib/firebase';
@@ -9,7 +9,8 @@ import { extractKeywords } from '../../lib/openai';
 import PostCard from '../../components/PostCard';
 import CommentsSheet from '../../components/CommentsSheet';
 import { Colors, Gradients } from '../../constants/theme';
-import { TextInput } from 'react-native';
+
+type Notification = { id: string; fromUsername: string; fromUserId: string };
 
 export default function PlazaScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -23,6 +24,8 @@ export default function PlazaScreen() {
   const [closeFriendIds, setCloseFriendIds] = useState<Set<string>>(new Set());
   const [interactions, setInteractions] = useState<Map<string, { liked: boolean; commented: boolean }>>(new Map());
   const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set());
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [userProfile, setUserProfile] = useState<{ username: string } | null>(null);
 
   useEffect(() => {
     fetchPosts();
@@ -51,6 +54,7 @@ export default function PlazaScreen() {
   const loadUserData = async (uid: string) => {
     const cfSnap = await getDocs(collection(db, 'users', uid, 'closeFriends'));
     setCloseFriendIds(new Set(cfSnap.docs.map((d) => d.id)));
+
     const intSnap = await getDocs(collection(db, 'users', uid, 'interactions'));
     const map = new Map<string, { liked: boolean; commented: boolean }>();
     const liked = new Set<string>();
@@ -61,7 +65,26 @@ export default function PlazaScreen() {
     });
     setInteractions(map);
     setLikedPostIds(liked);
+
+    // load unread notifications
+    const notifSnap = await getDocs(collection(db, 'users', uid, 'notifications'));
+    const unread: Notification[] = notifSnap.docs
+      .filter((d) => !d.data().read)
+      .map((d) => ({ id: d.id, fromUsername: d.data().fromUsername ?? '好友', fromUserId: d.data().fromUserId ?? '' }));
+    setNotifications(unread);
+
+    // load own profile for publish notifications
+    const pSnap = await getDoc(doc(db, 'users', uid));
+    if (pSnap.exists()) setUserProfile({ username: (pSnap.data() as any).username ?? '我' });
+
     setLoading(false);
+  };
+
+  const dismissNotification = async (notifId: string) => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+    await updateDoc(doc(db, 'users', uid, 'notifications', notifId), { read: true });
+    setNotifications((prev) => prev.filter((n) => n.id !== notifId));
   };
 
   const onRefresh = async () => {
@@ -91,6 +114,17 @@ export default function PlazaScreen() {
     await setDoc(likeRef, { userId: user.uid, postId, createdAt: serverTimestamp() });
     await updateDoc(doc(db, 'posts', postId), { likesCount: increment(1) });
     await setDoc(doc(db, 'users', user.uid, 'interactions', postId), { hasLiked: true }, { merge: true });
+
+    // increment friend interaction score
+    const postAuthorId = posts.find((p) => p.id === postId)?.userId;
+    if (postAuthorId && postAuthorId !== user.uid) {
+      const friendRef = doc(db, 'users', user.uid, 'friends', postAuthorId);
+      const friendSnap = await getDoc(friendRef);
+      if (friendSnap.exists()) {
+        await updateDoc(friendRef, { interactionScore: increment(1) });
+      }
+    }
+
     setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, likesCount: (p.likesCount ?? 0) + 1 } : p));
     setLikedPostIds((prev) => new Set([...prev, postId]));
     setInteractions((prev) => {
@@ -124,10 +158,23 @@ export default function PlazaScreen() {
       if (!user) return;
       let keywords: string[] = [];
       try { keywords = await extractKeywords(newContent); } catch {}
-      await addDoc(collection(db, 'posts'), {
+      const postRef = await addDoc(collection(db, 'posts'), {
         userId: user.uid, content: newContent, tier: newTier,
         keywords, likesCount: 0, createdAt: serverTimestamp(),
       });
+      // notify close friends
+      const fromUsername = userProfile?.username ?? '好友';
+      for (const friendId of closeFriendIds) {
+        try {
+          await setDoc(doc(db, 'users', friendId, 'notifications', postRef.id), {
+            fromUserId: user.uid,
+            fromUsername,
+            postId: postRef.id,
+            read: false,
+            createdAt: serverTimestamp(),
+          });
+        } catch {}
+      }
       setNewContent('');
       setShowPublish(false);
       fetchPosts();
@@ -151,6 +198,18 @@ export default function PlazaScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+
+      {notifications.length > 0 && (
+        <Animated.View entering={FadeInUp.duration(400)} style={styles.notifBanner}>
+          <Text style={styles.notifText}>
+            {notifications[0].fromUsername} 刚分享了闪光时刻
+            {notifications.length > 1 ? ` 等 ${notifications.length} 条` : ''}
+          </Text>
+          <TouchableOpacity onPress={() => dismissNotification(notifications[0].id)}>
+            <Text style={styles.notifDismiss}>×</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
 
       <FlatList
         data={posts}
@@ -215,8 +274,8 @@ export default function PlazaScreen() {
 }
 
 const blockedCardStyle: any = {
-  marginHorizontal: 16, marginVertical: 8, backgroundColor: 'rgba(192,132,252,0.07)',
-  borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(192,132,252,0.2)', alignItems: 'center',
+  marginHorizontal: 16, marginVertical: 8, backgroundColor: 'rgba(255,179,71,0.06)',
+  borderRadius: 24, padding: 24, borderWidth: 1, borderColor: 'rgba(255,179,71,0.15)', alignItems: 'center',
 };
 const blockedTextStyle: any = { color: Colors.textMuted, fontSize: 13, textAlign: 'center', lineHeight: 20 };
 
@@ -227,7 +286,15 @@ const styles = StyleSheet.create({
   publishBtn: { borderRadius: 20, overflow: 'hidden' },
   publishGradient: { paddingHorizontal: 18, paddingVertical: 10 },
   publishBtnText: { color: '#fff', fontSize: 14, fontWeight: '500' },
-  list: { paddingTop: 8, paddingBottom: 120 },
+  notifBanner: {
+    marginHorizontal: 16, marginBottom: 4, paddingHorizontal: 16, paddingVertical: 10,
+    backgroundColor: 'rgba(255,179,71,0.12)', borderRadius: 14,
+    borderWidth: 1, borderColor: 'rgba(255,179,71,0.3)',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  notifText: { color: Colors.primary, fontSize: 13, flex: 1 },
+  notifDismiss: { color: Colors.textMuted, fontSize: 18, paddingLeft: 12 },
+  list: { paddingTop: 4, paddingBottom: 120 },
   publishModal: { flex: 1, backgroundColor: '#0A0F1E', padding: 20 },
   publishHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   cancelText: { color: Colors.textMuted, fontSize: 16 },

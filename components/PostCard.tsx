@@ -7,6 +7,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Post } from '../lib/firebase';
 import { Colors, Gradients, Layout, Shadow, Typography } from '../constants/theme';
+import AvatarView from './AvatarView';
 import { HapticPatterns } from '../lib/haptics';
 import { Sounds } from '../lib/audio';
 
@@ -45,6 +46,7 @@ export default function PostCard({ post, initialLiked = false, onLike, onOpenCom
   const tierColors = isStarlight ? Gradients.starlight : Gradients.glimmer;
   const tierLabel = isStarlight ? '⭐ 星光' : '✨ 微光';
   const avatarColors = (post.profile?.avatarColors ?? tierColors) as [string, string, string];
+  const avatarUrl = post.profile?.avatarUrl;
 
   return (
     <Animated.View style={[styles.wrapper, Shadow.card, cardStyle]}>
@@ -56,9 +58,7 @@ export default function PostCard({ post, initialLiked = false, onLike, onOpenCom
         <BlurView intensity={Layout.blur} tint="dark" style={styles.blur}>
           <View style={styles.inner}>
             <View style={styles.header}>
-              <View style={styles.avatar}>
-                <LinearGradient colors={avatarColors} style={StyleSheet.absoluteFill} />
-              </View>
+              <AvatarView url={avatarUrl} colors={avatarColors} size={42} />
               <View style={styles.meta}>
                 <Text style={styles.username}>{post.profile?.username ?? '匿名'}</Text>
                 <Text style={styles.tier}>{tierLabel}</Text>
@@ -127,7 +127,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  avatar: { width: 42, height: 42, borderRadius: 21, overflow: 'hidden' },
   meta: { flex: 1 },
   username: { ...Typography.username, color: Colors.textPrimary },
   tier: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },

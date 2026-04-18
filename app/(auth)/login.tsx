@@ -6,6 +6,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'fire
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { Colors, Gradients } from '../../constants/theme';
+import { generateAvatarColors } from '../../lib/openai';
 
 const ERROR_MAP: Record<string, string> = {
   'auth/email-already-in-use': '该邮箱已被注册',
@@ -33,9 +34,11 @@ export default function LoginScreen() {
     try {
       if (isSignUp) {
         const { user } = await createUserWithEmailAndPassword(auth, email, password);
+        const uname = username || email.split('@')[0];
+        const colors = await generateAvatarColors(uname);
         await setDoc(doc(db, 'users', user.uid), {
-          username: username || email.split('@')[0],
-          avatarColors: ['#7C3AED', '#EC4899', '#F59E0B'],
+          username: uname,
+          avatarColors: colors,
           energyScore: 0,
           createdAt: serverTimestamp(),
         });

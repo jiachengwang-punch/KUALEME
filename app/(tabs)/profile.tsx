@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, SafeAreaView, Alert, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as ImagePicker from 'expo-image-picker';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, getDoc, updateDoc, collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { auth, db, UserProfile } from '../../lib/firebase';
+import { auth, db, storage, UserProfile } from '../../lib/firebase';
 import { generateAvatarColors } from '../../lib/openai';
 import { HapticPatterns } from '../../lib/haptics';
 import { Sounds } from '../../lib/audio';
 import { Colors, Gradients } from '../../constants/theme';
+import AvatarView from '../../components/AvatarView';
 import OpenAI from 'openai';
 
 type Breakthrough = {
@@ -64,8 +67,33 @@ export default function ProfileScreen() {
   const regenerateAvatar = async () => {
     if (!profile || !uid) return;
     const colors = await generateAvatarColors(profile.username);
-    await updateDoc(doc(db, 'users', uid), { avatarColors: colors });
-    setProfile({ ...profile, avatarColors: colors });
+    await updateDoc(doc(db, 'users', uid), { avatarColors: colors, avatarUrl: '' });
+    setProfile({ ...profile, avatarColors: colors, avatarUrl: undefined });
+  };
+
+  const pickAndUploadAvatar = async () => {
+    if (!uid) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) { Alert.alert('需要相册权限'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (result.canceled) return;
+    try {
+      const uri = result.assets[0].uri;
+      const res = await fetch(uri);
+      const blob = await res.blob();
+      const storageRef = ref(storage, `avatars/${uid}`);
+      await uploadBytes(storageRef, blob);
+      const url = await getDownloadURL(storageRef);
+      await updateDoc(doc(db, 'users', uid), { avatarUrl: url });
+      setProfile((prev) => prev ? { ...prev, avatarUrl: url } : prev);
+    } catch (e: any) {
+      Alert.alert('上传失败', e.message);
+    }
   };
 
   const searchTarget = async (q: string) => {
@@ -130,12 +158,17 @@ export default function ProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown} style={styles.avatarSection}>
-          <TouchableOpacity onPress={regenerateAvatar} style={styles.avatar}>
-            <LinearGradient colors={avatarColors} style={StyleSheet.absoluteFill} />
-            <Text style={styles.avatarHint}>点击重生成</Text>
-          </TouchableOpacity>
+          <AvatarView url={profile?.avatarUrl} colors={avatarColors} size={100} borderWidth={2} borderColor={Colors.primary} />
           <Text style={styles.username}>{profile?.username}</Text>
           <Text style={styles.energyScore}>能量值 {profile?.energyScore ?? 0}</Text>
+          <View style={styles.avatarBtns}>
+            <TouchableOpacity style={styles.avatarBtn} onPress={pickAndUploadAvatar}>
+              <Text style={styles.avatarBtnText}>上传照片</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.avatarBtn} onPress={regenerateAvatar}>
+              <Text style={styles.avatarBtnText}>AI 重新生成</Text>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
         <TouchableOpacity style={styles.btLaunchBtn} onPress={() => setShowBreakthrough(true)}>
@@ -227,9 +260,10 @@ const styles = StyleSheet.create({
   signOutText: { color: Colors.textMuted, fontSize: 14 },
   scroll: { paddingHorizontal: 20, paddingBottom: 100 },
   avatarSection: { alignItems: 'center', paddingVertical: 32, gap: 12 },
-  avatar: { width: 100, height: 100, borderRadius: 50, overflow: 'hidden', borderWidth: 2, borderColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
-  avatarHint: { color: 'rgba(255,255,255,0.6)', fontSize: 11, textAlign: 'center' },
-  username: { color: Colors.textPrimary, fontSize: 22, fontWeight: '300', letterSpacing: 2 },
+  username: { color: Colors.textPrimary, fontSize: 22, fontWeight: '500', letterSpacing: 1 },
+  avatarBtns: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  avatarBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+  avatarBtnText: { color: Colors.textSecondary, fontSize: 13 },
   energyScore: { color: Colors.primary, fontSize: 13 },
   btLaunchBtn: { borderRadius: 20, overflow: 'hidden', marginBottom: 32 },
   btGradient: { padding: 20, alignItems: 'center', gap: 6 },
