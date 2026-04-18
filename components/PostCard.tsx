@@ -21,7 +21,7 @@ export default function PostCard({ post, initialLiked = false, onLike, onOpenCom
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [isRevealed, setIsRevealed] = useState(initialLiked);
   const scale = useSharedValue(1);
-  const glowOpacity = useSharedValue(0);
+  const glowOpacity = useSharedValue(initialLiked ? 0.18 : 0);
 
   const cardStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const glowStyle = useAnimatedStyle(() => ({ opacity: glowOpacity.value }));
@@ -30,7 +30,7 @@ export default function PostCard({ post, initialLiked = false, onLike, onOpenCom
     HapticPatterns.like();
     Sounds.like();
     scale.value = withSequence(withSpring(1.04, { damping: 4 }), withSpring(1, { damping: 7 }));
-    glowOpacity.value = withSequence(withTiming(1, { duration: 200 }), withTiming(0, { duration: 900 }));
+    glowOpacity.value = withSequence(withTiming(1, { duration: 200 }), withTiming(0.18, { duration: 900 }));
     setIsLiked(true);
     setIsRevealed(true);
     onLike(post.id);
@@ -52,7 +52,7 @@ export default function PostCard({ post, initialLiked = false, onLike, onOpenCom
         <LinearGradient colors={tierColors} style={StyleSheet.absoluteFill} />
       </Animated.View>
 
-      <TouchableOpacity activeOpacity={0.92} onLongPress={handleLongPress} delayLongPress={700} style={styles.card}>
+      <TouchableOpacity activeOpacity={0.92} onLongPress={handleLongPress} delayLongPress={700} style={[styles.card, isLiked && styles.cardLiked]}>
         <BlurView intensity={Layout.blur} tint="dark" style={styles.blur}>
           <View style={styles.inner}>
             <View style={styles.header}>
@@ -117,6 +117,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.border,
+  },
+  cardLiked: {
+    borderColor: Colors.primary,
   },
   blur: { flex: 1 },
   inner: {
