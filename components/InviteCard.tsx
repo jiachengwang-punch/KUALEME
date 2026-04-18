@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Platform } from 'react-native';
+import { showAlert } from '../lib/alert';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
 import { Colors, Gradients } from '../constants/theme';
@@ -21,7 +22,7 @@ export default function InviteCard({ visible, username, energyScore, avatarColor
   const copyLink = async () => {
     if (Platform.OS === 'web' && navigator.clipboard) {
       await navigator.clipboard.writeText(`${inviteUrl}\n邀请码：${inviteCode}`);
-      Alert.alert('已复制', '邀请链接已复制到剪贴板');
+      showAlert('已复制', '邀请链接已复制到剪贴板');
     }
   };
 

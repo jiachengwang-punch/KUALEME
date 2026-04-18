@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withDelay,
@@ -10,9 +10,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { Colors } from '../constants/theme';
 
-const { width } = Dimensions.get('window');
-
 export default function SplashScreen() {
+  const { width } = useWindowDimensions();
   const router = useRouter();
 
   const line1Opacity = useSharedValue(0);

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { showConfirm } from '../lib/alert';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -46,10 +47,7 @@ export default function PostCard({ post, initialLiked = false, currentUserId, on
   };
 
   const handleDelete = () => {
-    Alert.alert('删除动态', '确定要删除这条动态吗？', [
-      { text: '取消', style: 'cancel' },
-      { text: '删除', style: 'destructive', onPress: () => onDelete?.(post.id) },
-    ]);
+    showConfirm('删除动态', '确定要删除这条动态吗？', () => onDelete?.(post.id));
   };
 
   const isStarlight = post.tier === 'starlight';

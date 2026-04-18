@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, collection, query, where, orderBy, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db, UserProfile, Post } from '../../lib/firebase';
+import { showAlert } from '../../lib/alert';
 import { Colors, Gradients, Shadow, Layout, Typography } from '../../constants/theme';
 import AvatarView from '../../components/AvatarView';
 
@@ -72,9 +73,9 @@ export default function UserProfileScreen() {
         status: 'pending', createdAt: serverTimestamp(),
       });
       setRequestSent(true);
-      Alert.alert('已发送', '好友请求已发出');
+      showAlert('已发送', '好友请求已发出');
     } catch (e: any) {
-      Alert.alert('发送失败', e.message);
+      showAlert('发送失败', e.message);
     }
   };
 

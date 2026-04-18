@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Alert, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, FlatList } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withDelay, withSequence, FadeInDown } from 'react-native-reanimated';
 import { collection, getDocs, orderBy, query, limit, addDoc, serverTimestamp, where, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { usePostsContext } from '../../lib/PostsContext';
 import { Colors, Gradients } from '../../constants/theme';
+import { showAlert } from '../../lib/alert';
 import { HapticPatterns } from '../../lib/haptics';
 import { Sounds } from '../../lib/audio';
 import AvatarView from '../../components/AvatarView';
@@ -107,14 +108,14 @@ export default function ChampionsScreen() {
     if (!uid) return;
     try {
       const snap = await getDocs(query(collection(db, 'posts'), where('tier', '==', 'glimmer'), limit(20)));
-      if (snap.empty) { Alert.alert('暂无微光动态可点亮'); return; }
+      if (snap.empty) { showAlert('暂无微光动态可点亮'); return; }
       const coldPost = snap.docs.map((d) => ({ id: d.id, ...d.data() } as any))
         .sort((a, b) => (a.likesCount ?? 0) - (b.likesCount ?? 0))[0];
       await updateDoc(doc(db, 'posts', coldPost.id), { featuredBy: uid, featuredUntil: new Date(Date.now() + 15 * 60 * 1000) });
       setTorchSent(true);
       HapticPatterns.champion(); Sounds.champion();
-      Alert.alert('火把已传递 ★', '这条微光动态将在广场置顶 15 分钟');
-    } catch (e: any) { Alert.alert('传递失败', e.message); }
+      showAlert('火把已传递 ★', '这条微光动态将在广场置顶 15 分钟');
+    } catch (e: any) { showAlert('传递失败', e.message); }
   };
 
   const triggerMeteor = () => {

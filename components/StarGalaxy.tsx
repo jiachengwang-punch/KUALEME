@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence, withDelay,
   Easing,
@@ -7,12 +7,6 @@ import Animated, {
 import { Colors } from '../constants/theme';
 import AvatarView from './AvatarView';
 
-const { width, height } = Dimensions.get('window');
-const CX = width / 2;
-const CY = height / 2 - 40;
-
-// Each orbit is defined by its tilt axis azimuth (phi) and inclination (theta)
-// Projected ellipse: major axis = 2R along phi, minor axis = 2R*cos(theta) along phi+90°
 const ORBIT_CONFIGS = [
   { phi: 0.10, theta: 0.55 },
   { phi: 1.15, theta: 0.90 },
@@ -23,7 +17,6 @@ const ORBIT_CONFIGS = [
   { phi: 0.35, theta: 0.82 },
 ];
 
-// Orbit ring colors — app palette
 const ORBIT_COLORS = [
   'rgba(255,172,129,0.55)',
   'rgba(174,214,241,0.50)',
@@ -33,15 +26,6 @@ const ORBIT_COLORS = [
   'rgba(174,214,241,0.40)',
   'rgba(255,209,148,0.40)',
 ];
-
-// Ambient background dots
-const AMBIENT = Array.from({ length: 36 }, (_, i) => {
-  const a = (i * 137.508 * Math.PI) / 180;
-  const r = 52 + (i % 7) * 17;
-  const s = 0.9 + (i % 4) * 0.55;
-  const o = 0.10 + (i % 5) * 0.055;
-  return { x: CX + Math.cos(a) * r, y: CY + Math.sin(a) * r * 0.46, s, o, phase: i * 0.55 };
-});
 
 function AmbientDot({ x, y, s, o, phase }: { x: number; y: number; s: number; o: number; phase: number }) {
   const opacity = useSharedValue(o * 0.5);
@@ -61,9 +45,8 @@ function AmbientDot({ x, y, s, o, phase }: { x: number; y: number; s: number; o:
   return <Animated.View style={[styles.dot, { left: x - s / 2, top: y - s / 2, width: s, height: s, borderRadius: s }, style]} />;
 }
 
-// Static orbit ellipse ring
-function OrbitRing({ radius, phi, theta, color, zIdx }: {
-  radius: number; phi: number; theta: number; color: string; zIdx: number;
+function OrbitRing({ radius, phi, theta, color, zIdx, cx, cy }: {
+  radius: number; phi: number; theta: number; color: string; zIdx: number; cx: number; cy: number;
 }) {
   const w = radius * 2;
   const h = radius * 2 * Math.abs(Math.cos(theta));
@@ -72,8 +55,8 @@ function OrbitRing({ radius, phi, theta, color, zIdx }: {
       position: 'absolute',
       width: w, height: h,
       borderRadius: w,
-      left: CX - w / 2,
-      top: CY - h / 2,
+      left: cx - w / 2,
+      top: cy - h / 2,
       borderWidth: 1,
       borderColor: color,
       transform: [{ rotate: `${phi}rad` }],
@@ -82,17 +65,16 @@ function OrbitRing({ radius, phi, theta, color, zIdx }: {
   );
 }
 
-// Ghost star — orbits along a ring when friends list is empty
 const GHOST_CONFIGS = [
-  { cfgIdx: 0, radius: 88,  theta0: 0.0,        duration: 22000, color: 'rgba(255,172,129,0.5)' },
+  { cfgIdx: 0, radius: 88,  theta0: 0.0,          duration: 22000, color: 'rgba(255,172,129,0.5)' },
   { cfgIdx: 1, radius: 140, theta0: Math.PI * 0.6, duration: 38000, color: 'rgba(174,214,241,0.45)' },
   { cfgIdx: 2, radius: 110, theta0: Math.PI * 1.3, duration: 28000, color: 'rgba(255,209,148,0.45)' },
   { cfgIdx: 3, radius: 162, theta0: Math.PI * 0.9, duration: 50000, color: 'rgba(133,193,233,0.40)' },
 ];
 
-function GhostStar({ radius, phi, theta, theta0, duration, color }: {
+function GhostStar({ radius, phi, theta, theta0, duration, color, cx, cy }: {
   radius: number; phi: number; theta: number;
-  theta0: number; duration: number; color: string;
+  theta0: number; duration: number; color: string; cx: number; cy: number;
 }) {
   const angle = useSharedValue(theta0);
   const glow = useSharedValue(0.4);
@@ -120,8 +102,8 @@ function GhostStar({ radius, phi, theta, theta0, duration, color }: {
     const s = (0.65 + depthT * 0.35) * glow.value * 1.2 + 0.3;
     return {
       position: 'absolute',
-      left: CX - dotSize / 2,
-      top: CY - dotSize / 2,
+      left: cx - dotSize / 2,
+      top: cy - dotSize / 2,
       width: dotSize, height: dotSize, borderRadius: dotSize,
       transform: [{ translateX: sx }, { translateY: sy }, { scale: s }],
       backgroundColor: color,
@@ -156,7 +138,7 @@ type StarParams = {
   orbitColor: string; orbitZIndex: number;
 };
 
-function Star3D({ friend, p, maxScore }: { friend: Friend; p: StarParams; maxScore: number }) {
+function Star3D({ friend, p, maxScore, cx, cy }: { friend: Friend; p: StarParams; maxScore: number; cx: number; cy: number }) {
   const { radius, phi, theta, theta0, duration, isClose, score, orbitZIndex } = p;
   const norm = maxScore > 0 ? score / maxScore : 0;
   const size = isClose ? 50 : 38;
@@ -181,23 +163,17 @@ function Star3D({ friend, p, maxScore }: { friend: Friend; p: StarParams; maxSco
 
   const starStyle = useAnimatedStyle(() => {
     const t = angle.value;
-    // Orthographic projection of tilted orbit
     const sx = radius * Math.cos(phi) * Math.cos(t) - radius * Math.sin(phi) * Math.cos(theta) * Math.sin(t);
     const sy = radius * Math.sin(phi) * Math.cos(t) + radius * Math.cos(phi) * Math.cos(theta) * Math.sin(t);
-    const sz = radius * Math.sin(theta) * Math.sin(t); // positive = toward viewer
-
-    // Depth cues: scale and opacity shift with z
-    const depthT = (sz / (radius * Math.sin(theta) + 0.001) + 1) / 2; // 0..1, 1 = front
+    const sz = radius * Math.sin(theta) * Math.sin(t);
+    const depthT = (sz / (radius * Math.sin(theta) + 0.001) + 1) / 2;
     const depthScale = 0.72 + depthT * 0.28;
     const depthOpacity = 0.42 + depthT * 0.58;
-
-    // zIndex: orbitZIndex at center, ±radius from sz
     const starZ = Math.round(orbitZIndex + sz * 0.7);
-
     return {
       position: 'absolute',
-      left: CX - size / 2,
-      top: CY - size / 2,
+      left: cx - size / 2,
+      top: cy - size / 2,
       transform: [
         { translateX: sx },
         { translateY: sy },
@@ -208,7 +184,6 @@ function Star3D({ friend, p, maxScore }: { friend: Friend; p: StarParams; maxSco
     };
   });
 
-  // Glow halo for close friends (tracks star position)
   const glowStyle = useAnimatedStyle(() => {
     if (!isClose) return { display: 'none' as any };
     const t = angle.value;
@@ -219,7 +194,7 @@ function Star3D({ friend, p, maxScore }: { friend: Friend; p: StarParams; maxSco
     const gs = size * 1.9 * pulse.value;
     return {
       position: 'absolute',
-      left: CX - gs / 2, top: CY - gs / 2,
+      left: cx - gs / 2, top: cy - gs / 2,
       width: gs, height: gs, borderRadius: gs,
       transform: [{ translateX: sx }, { translateY: sy }],
       backgroundColor: 'rgba(255,172,129,0.22)',
@@ -250,6 +225,18 @@ function Star3D({ friend, p, maxScore }: { friend: Friend; p: StarParams; maxSco
 }
 
 export default function StarGalaxy({ friends, closeFriends, interactionScores = {} }: Props) {
+  const { width, height } = useWindowDimensions();
+  const cx = width / 2;
+  const cy = height / 2 - 40;
+
+  const ambient = useMemo(() => Array.from({ length: 36 }, (_, i) => {
+    const a = (i * 137.508 * Math.PI) / 180;
+    const r = 52 + (i % 7) * 17;
+    const s = 0.9 + (i % 4) * 0.55;
+    const o = 0.10 + (i % 5) * 0.055;
+    return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * 0.46, s, o, phase: i * 0.55 };
+  }), [cx, cy]);
+
   const closeIds = new Set(closeFriends.map((cf) => cf.friend_id));
   const maxScore = Math.max(1, ...Object.values(interactionScores));
   const isEmpty = friends.length === 0;
@@ -270,7 +257,6 @@ export default function StarGalaxy({ friends, closeFriends, interactionScores = 
     const duration = Math.round(18000 + Math.pow(radius / 170, 1.4) * 36000);
     const theta0 = (i / Math.max(sorted.length, 1)) * Math.PI * 2;
     const orbitZIndex = 20 + i * 3;
-
     return {
       radius, phi: cfg.phi, theta: cfg.theta,
       theta0, duration, isClose, score,
@@ -279,7 +265,6 @@ export default function StarGalaxy({ friends, closeFriends, interactionScores = 
     };
   });
 
-  // Ghost orbit rings shown when no friends
   const ghostRings = GHOST_CONFIGS.map((g) => ({
     radius: g.radius,
     phi: ORBIT_CONFIGS[g.cfgIdx].phi,
@@ -290,20 +275,17 @@ export default function StarGalaxy({ friends, closeFriends, interactionScores = 
 
   return (
     <View style={styles.container}>
-      {AMBIENT.map((s, i) => <AmbientDot key={i} {...s} />)}
+      {ambient.map((s, i) => <AmbientDot key={i} {...s} />)}
 
-      {/* Orbit rings: real when friends exist, ghost rings when empty */}
       {isEmpty
-        ? ghostRings.map((r, i) => <OrbitRing key={i} radius={r.radius} phi={r.phi} theta={r.theta} color={r.color} zIdx={r.zIdx} />)
-        : starParams.map((p, i) => <OrbitRing key={i} radius={p.radius} phi={p.phi} theta={p.theta} color={p.orbitColor} zIdx={p.orbitZIndex} />)
+        ? ghostRings.map((r, i) => <OrbitRing key={i} radius={r.radius} phi={r.phi} theta={r.theta} color={r.color} zIdx={r.zIdx} cx={cx} cy={cy} />)
+        : starParams.map((p, i) => <OrbitRing key={i} radius={p.radius} phi={p.phi} theta={p.theta} color={p.orbitColor} zIdx={p.orbitZIndex} cx={cx} cy={cy} />)
       }
 
-      {/* Center user */}
-      <View style={[styles.center, { left: CX - 36, top: CY - 36, zIndex: 500 }]}>
+      <View style={[styles.center, { left: cx - 36, top: cy - 36, zIndex: 500 }]}>
         <AvatarView size={72} borderWidth={2.5} borderColor={Colors.primary} />
       </View>
 
-      {/* Ghost stars when no friends */}
       {isEmpty && GHOST_CONFIGS.map((g, i) => (
         <GhostStar
           key={i}
@@ -313,16 +295,17 @@ export default function StarGalaxy({ friends, closeFriends, interactionScores = 
           theta0={g.theta0}
           duration={g.duration}
           color={g.color}
+          cx={cx}
+          cy={cy}
         />
       ))}
 
-      {/* Friend stars */}
       {sorted.map((f, i) => (
-        <Star3D key={f.addressee_id} friend={f} p={starParams[i]} maxScore={maxScore} />
+        <Star3D key={f.addressee_id} friend={f} p={starParams[i]} maxScore={maxScore} cx={cx} cy={cy} />
       ))}
 
       {isEmpty && (
-        <View style={[styles.empty, { left: CX - 90, top: CY + 110 }]}>
+        <View style={[styles.empty, { left: cx - 90, top: cy + 110 }]}>
           <Text style={styles.emptyText}>还没有星辰，去加友吧</Text>
         </View>
       )}

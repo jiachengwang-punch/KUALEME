@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, SafeAreaView, Alert, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, SafeAreaView, Modal, Platform } from 'react-native';
+import { showAlert } from '../../lib/alert';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
@@ -122,7 +123,7 @@ export default function ProfileScreen() {
               await updateDoc(doc(db, 'users', uid), { avatarUrl: dataUri });
               setProfile((prev) => prev ? { ...prev, avatarUrl: dataUri } : prev);
             } catch (err: any) {
-              Alert.alert('上传失败', err.message);
+              showAlert('上传失败', err.message);
             }
           };
           img.src = src;
@@ -140,7 +141,7 @@ export default function ProfileScreen() {
 
     // native
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) { Alert.alert('需要相册权限'); return; }
+    if (!perm.granted) { showAlert('需要相册权限'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'], allowsEditing: true,
       aspect: [1, 1], quality: 0.5, base64: true,
@@ -153,7 +154,7 @@ export default function ProfileScreen() {
       await updateDoc(doc(db, 'users', uid), { avatarUrl: dataUri });
       setProfile((prev) => prev ? { ...prev, avatarUrl: dataUri } : prev);
     } catch (err: any) {
-      Alert.alert('上传失败', err.message);
+      showAlert('上传失败', err.message);
     }
   };
 
@@ -192,7 +193,7 @@ export default function ProfileScreen() {
     });
     HapticPatterns.deliver();
     Sounds.deliver();
-    Alert.alert('已投递', `高光简报已送达 ${selectedTarget.username}`);
+    showAlert('已投递', `高光简报已送达 ${selectedTarget.username}`);
     setShowBreakthrough(false);
     setBtContent(''); setPolished(''); setSelectedTarget(null);
     loadAll();

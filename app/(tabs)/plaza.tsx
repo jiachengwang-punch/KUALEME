@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, Alert, RefreshControl, SafeAreaView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, RefreshControl, SafeAreaView, TextInput } from 'react-native';
+import { showAlert } from '../../lib/alert';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { addDoc, doc, updateDoc, increment, serverTimestamp, getDoc, setDoc, deleteDoc, collection } from 'firebase/firestore';
@@ -108,7 +109,7 @@ export default function PlazaScreen() {
     try {
       await deleteDoc(doc(db, 'posts', postId));
     } catch (e: any) {
-      Alert.alert('删除失败', e.message);
+      showAlert('删除失败', e.message);
     }
   };
 
@@ -134,7 +135,7 @@ export default function PlazaScreen() {
       setNewContent('');
       setShowPublish(false);
     } catch (e: any) {
-      Alert.alert('发布失败', e.message);
+      showAlert('发布失败', e.message);
     } finally {
       setPublishing(false);
     }

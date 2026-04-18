@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, SafeAreaView, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, SafeAreaView } from 'react-native';
+import { showAlert } from '../../lib/alert';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { collection, doc, getDocs, setDoc, updateDoc, query, where, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -73,7 +74,7 @@ export default function FriendsScreen() {
     await setDoc(doc(db, 'users', targetId, 'friendRequests', uid), {
       status: 'pending', createdAt: serverTimestamp(),
     });
-    Alert.alert('已发送', '好友请求已发出');
+    showAlert('已发送', '好友请求已发出');
   };
 
   const acceptRequest = async (requesterId: string) => {
@@ -91,7 +92,7 @@ export default function FriendsScreen() {
       await deleteDoc(doc(db, 'users', uid, 'closeFriends', friendId));
       setCloseFriendIds((prev) => { const s = new Set(prev); s.delete(friendId); return s; });
     } else {
-      if (closeFriendIds.size >= 12) { Alert.alert('核心圈已满', '最多12人'); return; }
+      if (closeFriendIds.size >= 12) { showAlert('核心圈已满', '最多12人'); return; }
       await setDoc(doc(db, 'users', uid, 'closeFriends', friendId), { createdAt: serverTimestamp() });
       setCloseFriendIds((prev) => new Set([...prev, friendId]));
     }
