@@ -3,10 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, SafeAr
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc, getDoc, updateDoc, collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { auth, db, storage, UserProfile } from '../../lib/firebase';
+import { auth, db, UserProfile } from '../../lib/firebase';
 import { generateAvatarColors } from '../../lib/openai';
 import { HapticPatterns } from '../../lib/haptics';
 import { Sounds } from '../../lib/audio';
@@ -79,18 +78,16 @@ export default function ProfileScreen() {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.7,
+      quality: 0.5,
+      base64: true,
     });
     if (result.canceled) return;
     try {
-      const uri = result.assets[0].uri;
-      const res = await fetch(uri);
-      const blob = await res.blob();
-      const storageRef = ref(storage, `avatars/${uid}`);
-      await uploadBytes(storageRef, blob);
-      const url = await getDownloadURL(storageRef);
-      await updateDoc(doc(db, 'users', uid), { avatarUrl: url });
-      setProfile((prev) => prev ? { ...prev, avatarUrl: url } : prev);
+      const b64 = result.assets[0].base64;
+      if (!b64) return;
+      const dataUri = `data:image/jpeg;base64,${b64}`;
+      await updateDoc(doc(db, 'users', uid), { avatarUrl: dataUri });
+      setProfile((prev) => prev ? { ...prev, avatarUrl: dataUri } : prev);
     } catch (e: any) {
       Alert.alert('上传失败', e.message);
     }
