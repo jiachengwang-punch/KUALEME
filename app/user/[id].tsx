@@ -5,8 +5,19 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, collection, query, where, orderBy, getDocs, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, UserProfile, Post } from '../../lib/firebase';
-import { Colors, Gradients, Shadow, Layout } from '../../constants/theme';
+import { Colors, Gradients, Shadow, Layout, Typography } from '../../constants/theme';
 import AvatarView from '../../components/AvatarView';
+
+const ACHIEVEMENTS = [
+  { min: 500, label: '宇宙先锋', icon: '✺' },
+  { min: 200, label: '能量守护者', icon: '★' },
+  { min: 80, label: '星光探索者', icon: '⭐' },
+  { min: 20, label: '微光使者', icon: '✦' },
+  { min: 0, label: '初升之星', icon: '☆' },
+];
+function getAchievement(score: number) {
+  return ACHIEVEMENTS.find((a) => score >= a.min) ?? ACHIEVEMENTS[ACHIEVEMENTS.length - 1];
+}
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -84,6 +95,12 @@ export default function UserProfileScreen() {
               <AvatarView url={profile?.avatarUrl} colors={avatarColors} size={88} borderWidth={2} borderColor={Colors.primary} />
               <Text style={styles.username}>{profile?.username ?? '未知用户'}</Text>
               <Text style={styles.energy}>能量值 {profile?.energyScore ?? 0}</Text>
+              {(() => { const a = getAchievement(profile?.energyScore ?? 0); return (
+                <View style={styles.achBadge}>
+                  <LinearGradient colors={Gradients.starlight} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+                  <Text style={styles.achText}>{a.icon} {a.label}</Text>
+                </View>
+              ); })()}
 
               {!isSelf && (
                 <TouchableOpacity
@@ -143,6 +160,8 @@ const styles = StyleSheet.create({
   },
   username: { color: Colors.textPrimary, fontSize: 22, fontWeight: '600', letterSpacing: 0.5 },
   energy: { color: Colors.primary, fontSize: 13 },
+  achBadge: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 5, overflow: 'hidden' },
+  achText: { color: '#fff', fontSize: 12, fontWeight: '600' },
   addBtn: {
     marginTop: 6, paddingHorizontal: 24, paddingVertical: 10,
     borderRadius: 20, backgroundColor: Colors.primary,

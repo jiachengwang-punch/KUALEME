@@ -25,6 +25,8 @@ export default function PlazaScreen() {
   const [newTier, setNewTier] = useState<'starlight' | 'glimmer'>('glimmer');
   const [publishing, setPublishing] = useState(false);
   const [closeFriendIds, setCloseFriendIds] = useState<Set<string>>(new Set());
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
+  const [feedMode, setFeedMode] = useState<'all' | 'friends'>('all');
   const [interactions, setInteractions] = useState<Map<string, { liked: boolean; commented: boolean }>>(new Map());
   const [likedPostIds, setLikedPostIds] = useState<Set<string>>(new Set());
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -32,7 +34,10 @@ export default function PlazaScreen() {
   const [uid, setUid] = useState<string | undefined>(undefined);
   const profileCache = useRef<Map<string, any>>(new Map());
 
-  const posts = filter === 'all' ? allPosts : allPosts.filter((p) => p.tier === filter);
+  const sourcePosts = feedMode === 'friends' && friendIds.size > 0
+    ? allPosts.filter((p) => friendIds.has(p.userId))
+    : allPosts;
+  const posts = filter === 'all' ? sourcePosts : sourcePosts.filter((p) => p.tier === filter);
 
   useEffect(() => {
     const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(40));
@@ -61,14 +66,16 @@ export default function PlazaScreen() {
   }, []);
 
   const loadUserData = async (userId: string) => {
-    const [cfSnap, intSnap, notifSnap, pSnap] = await Promise.all([
+    const [cfSnap, friendsSnap, intSnap, notifSnap, pSnap] = await Promise.all([
       getDocs(collection(db, 'users', userId, 'closeFriends')),
+      getDocs(collection(db, 'users', userId, 'friends')),
       getDocs(collection(db, 'users', userId, 'interactions')),
       getDocs(collection(db, 'users', userId, 'notifications')),
       getDoc(doc(db, 'users', userId)),
     ]);
 
     setCloseFriendIds(new Set(cfSnap.docs.map((d) => d.id)));
+    setFriendIds(new Set(friendsSnap.docs.map((d) => d.id)));
 
     const map = new Map<string, { liked: boolean; commented: boolean }>();
     const liked = new Set<string>();
@@ -137,13 +144,14 @@ export default function PlazaScreen() {
     });
   };
 
-  const handleComment = async (text: string, score: number) => {
+  const handleComment = async (text: string, score: number, replyTo?: { id: string; username: string }) => {
     if (!activePost) return;
     const user = auth.currentUser;
     if (!user) return;
     await addDoc(collection(db, 'comments'), {
       postId: activePost.id, userId: user.uid, content: text,
       sincerityScore: score, createdAt: serverTimestamp(),
+      ...(replyTo ? { replyToId: replyTo.id, replyToUsername: replyTo.username } : {}),
     });
     await setDoc(doc(db, 'users', user.uid, 'interactions', activePost.id), { hasCommented: true }, { merge: true });
     const pts = score >= 85 ? 2 : 1;
@@ -209,6 +217,17 @@ export default function PlazaScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* feed mode toggle */}
+        <View style={styles.feedModeRow}>
+          {(['all', 'friends'] as const).map((m) => (
+            <TouchableOpacity key={m} style={[styles.feedModeBtn, feedMode === m && styles.feedModeBtnActive]} onPress={() => setFeedMode(m)}>
+              <Text style={[styles.feedModeBtnText, feedMode === m && styles.feedModeBtnTextActive]}>
+                {m === 'all' ? '广场' : '好友圈'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* filter tabs */}
         <View style={styles.filterRow}>
           {(['all', 'starlight', 'glimmer'] as Filter[]).map((f) => (
@@ -269,6 +288,14 @@ export default function PlazaScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          feedMode === 'friends' ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>好友还没有发布动态</Text>
+              <Text style={styles.emptyStateSubText}>去星链页面添加好友吧</Text>
+            </View>
+          ) : null
+        }
       />
 
       <CommentsSheet
@@ -327,6 +354,11 @@ const styles = StyleSheet.create({
   publishBtn: { borderRadius: 20, overflow: 'hidden' },
   publishGradient: { paddingHorizontal: 18, paddingVertical: 10 },
   publishBtnText: { color: '#fff', fontSize: 14, fontWeight: '500' },
+  feedModeRow: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 8, backgroundColor: 'rgba(52,73,94,0.06)', borderRadius: 20, padding: 3 },
+  feedModeBtn: { flex: 1, paddingVertical: 7, borderRadius: 18, alignItems: 'center' },
+  feedModeBtnActive: { backgroundColor: '#fff', shadowColor: '#D1E1E9', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 2 },
+  feedModeBtnText: { color: Colors.textMuted, fontSize: 13, fontWeight: '500' },
+  feedModeBtnTextActive: { color: Colors.textPrimary, fontWeight: '600' },
   filterRow: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 8, gap: 8 },
   filterBtn: {
     paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
@@ -355,6 +387,9 @@ const styles = StyleSheet.create({
   tierBtnText: { color: Colors.textMuted, fontSize: 14 },
   tierBtnTextActive: { color: Colors.primary },
   publishInput: { flex: 1, color: Colors.textPrimary, fontSize: 17, lineHeight: 28, textAlignVertical: 'top' },
+  emptyState: { alignItems: 'center', marginTop: 80, gap: 8 },
+  emptyStateText: { color: Colors.textSecondary, fontSize: 16 },
+  emptyStateSubText: { color: Colors.textMuted, fontSize: 13 },
   featuredBanner: {
     marginHorizontal: 16, marginTop: 8, marginBottom: -4,
     borderRadius: 12, overflow: 'hidden', paddingHorizontal: 14, paddingVertical: 6,

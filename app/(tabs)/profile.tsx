@@ -14,6 +14,18 @@ import AvatarView from '../../components/AvatarView';
 import InviteCard from '../../components/InviteCard';
 import OpenAI from 'openai';
 
+const ACHIEVEMENTS = [
+  { min: 500, label: '宇宙先锋', icon: '✺', next: null },
+  { min: 200, label: '能量守护者', icon: '★', next: 500 },
+  { min: 80, label: '星光探索者', icon: '⭐', next: 200 },
+  { min: 20, label: '微光使者', icon: '✦', next: 80 },
+  { min: 0, label: '初升之星', icon: '☆', next: 20 },
+];
+
+function getAchievement(score: number) {
+  return ACHIEVEMENTS.find((a) => score >= a.min) ?? ACHIEVEMENTS[ACHIEVEMENTS.length - 1];
+}
+
 type Breakthrough = {
   id: string;
   senderId: string;
@@ -196,6 +208,7 @@ export default function ProfileScreen() {
           <AvatarView url={profile?.avatarUrl} colors={avatarColors} size={100} borderWidth={2} borderColor={Colors.primary} />
           <Text style={styles.username}>{profile?.username}</Text>
           <Text style={styles.energyScore}>能量值 {profile?.energyScore ?? 0}</Text>
+          <AchievementBadge score={profile?.energyScore ?? 0} />
           <View style={styles.avatarBtns}>
             <TouchableOpacity style={styles.avatarBtn} onPress={pickAndUploadAvatar}>
               <Text style={styles.avatarBtnText}>上传照片</Text>
@@ -301,6 +314,39 @@ export default function ProfileScreen() {
     </View>
   );
 }
+
+function AchievementBadge({ score }: { score: number }) {
+  const ach = getAchievement(score);
+  const progress = ach.next ? Math.min(1, score / ach.next) : 1;
+  return (
+    <View style={achStyles.container}>
+      <View style={achStyles.badge}>
+        <LinearGradient colors={Gradients.starlight} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+        <Text style={achStyles.icon}>{ach.icon}</Text>
+        <Text style={achStyles.label}>{ach.label}</Text>
+      </View>
+      {ach.next && (
+        <View style={achStyles.progressRow}>
+          <View style={achStyles.progressBar}>
+            <View style={[achStyles.progressFill, { width: `${progress * 100}%` as any }]} />
+          </View>
+          <Text style={achStyles.progressText}>{score} / {ach.next}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const achStyles = StyleSheet.create({
+  container: { alignItems: 'center', gap: 8, width: '100%' },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 7, overflow: 'hidden' },
+  icon: { color: '#fff', fontSize: 14 },
+  label: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, width: '100%' },
+  progressBar: { flex: 1, height: 4, backgroundColor: 'rgba(52,73,94,0.08)', borderRadius: 2, overflow: 'hidden' },
+  progressFill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 2 },
+  progressText: { color: Colors.textMuted, fontSize: 11, minWidth: 48, textAlign: 'right' },
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
