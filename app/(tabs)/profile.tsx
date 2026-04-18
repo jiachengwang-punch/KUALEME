@@ -10,6 +10,7 @@ import { generateAvatarColors } from '../../lib/openai';
 import { HapticPatterns } from '../../lib/haptics';
 import { Sounds } from '../../lib/audio';
 import { Colors, Gradients } from '../../constants/theme';
+import { usePostsContext } from '../../lib/PostsContext';
 import AvatarView from '../../components/AvatarView';
 import InviteCard from '../../components/InviteCard';
 import OpenAI from 'openai';
@@ -49,7 +50,7 @@ export default function ProfileScreen() {
   const [polishing, setPolishing] = useState(false);
   const [polished, setPolished] = useState('');
   const [showInvite, setShowInvite] = useState(false);
-  const uid = auth.currentUser?.uid;
+  const { uid } = usePostsContext();
 
   useEffect(() => { if (uid) loadAll(); }, [uid]);
 
