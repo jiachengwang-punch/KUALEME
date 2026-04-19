@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Modal, TouchableOpacity,
-  FlatList, KeyboardAvoidingView, Platform, TextInput, ActivityIndicator,
+  ScrollView, KeyboardAvoidingView, Platform, TextInput, ActivityIndicator,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -116,15 +116,13 @@ export default function CommentsSheet({ visible, postId, postContent, onClose, o
             {loadingComments ? (
               <ActivityIndicator color={Colors.primary} style={{ marginVertical: 20 }} />
             ) : (
-              <FlatList
-                data={comments}
-                keyExtractor={(item) => item.id}
-                style={styles.commentList}
-                renderItem={({ item }) => (
-                  <View style={[styles.commentRow, !!item.replyToUsername && styles.commentReply]}>
-                    {!!item.replyToUsername && (
-                      <View style={styles.replyLine} />
-                    )}
+              <ScrollView style={styles.commentList} showsVerticalScrollIndicator={false}>
+                {comments.length === 0 && (
+                  <Text style={styles.emptyText}>还没有留言，来第一个吧</Text>
+                )}
+                {comments.map((item) => (
+                  <View key={item.id} style={[styles.commentRow, !!item.replyToUsername && styles.commentReply]}>
+                    {!!item.replyToUsername && <View style={styles.replyLine} />}
                     <View style={styles.commentAvatar}>
                       <LinearGradient
                         colors={(item.avatarColors ?? ['#FFD194', '#FFAC81', '#AED6F1']) as [string, string, string]}
@@ -147,11 +145,8 @@ export default function CommentsSheet({ visible, postId, postContent, onClose, o
                       )}
                     </View>
                   </View>
-                )}
-                ListEmptyComponent={
-                  <Text style={styles.emptyText}>还没有留言，来第一个吧</Text>
-                }
-              />
+                ))}
+              </ScrollView>
             )}
 
             {warning && (
